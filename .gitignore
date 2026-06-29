@@ -5,5 +5,10 @@
 .worktrees/
 .directory
 
+# Frontend local/generated artifacts
+node_modules/
+dist/
+*.tsbuildinfo
+
 # Local workplace/reference screenshots used for design discovery.
 Visual Shop REFERENCES/
