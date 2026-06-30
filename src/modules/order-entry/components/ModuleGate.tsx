@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from 'react';
-import { hasModulePermission } from '../../../domain/permissions';
+import { ModuleGate as SharedModuleGate } from '../../../components/ModuleGate';
 import type { User } from '../../../domain/types';
 
 interface ModuleGateProps extends PropsWithChildren {
@@ -7,14 +7,9 @@ interface ModuleGateProps extends PropsWithChildren {
 }
 
 export function ModuleGate({ user, children }: ModuleGateProps) {
-  if (!hasModulePermission(user, 'Order Entry')) {
-    return (
-      <section className="module-blocked">
-        <h1>Order Entry permission required</h1>
-        <p>This module is not enabled for {user.name}.</p>
-      </section>
-    );
-  }
-
-  return <>{children}</>;
+  return (
+    <SharedModuleGate user={user} permission="Order Entry" moduleName="Order Entry">
+      {children}
+    </SharedModuleGate>
+  );
 }
