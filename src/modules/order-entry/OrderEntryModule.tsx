@@ -113,6 +113,7 @@ export function OrderEntryModule({ currentUser }: OrderEntryModuleProps) {
           onErase={() => setOrder(createDraftOrder())}
           onAddNote={() => addEvent('Order Note', 'Order note action opened')}
           onAddComment={() => addEvent('Comments', 'Comments action opened')}
+          onPrint={() => addEvent('Ord Printed', `Traveler printed for order ${order.id}`)}
         />
         <OrderHeaderStatus order={order} customerName={customerName} readiness={readiness} />
         <OrderTabs activeTab={activeTab} onTabChange={setActiveTab} />

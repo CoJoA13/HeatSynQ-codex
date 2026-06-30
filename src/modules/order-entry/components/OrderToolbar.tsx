@@ -11,6 +11,7 @@ interface OrderToolbarProps {
   onErase: () => void;
   onAddNote: () => void;
   onAddComment: () => void;
+  onPrint: () => void;
 }
 
 export function OrderToolbar({
@@ -24,6 +25,7 @@ export function OrderToolbar({
   onErase,
   onAddNote,
   onAddComment,
+  onPrint,
 }: OrderToolbarProps) {
   return (
     <div className="order-toolbar" aria-label="Order Entry toolbar">
@@ -53,7 +55,14 @@ export function OrderToolbar({
         <button type="button" className="toolbar-icon-button" aria-label="Comments" title="Comments" onClick={onAddComment}>
           <MessageSquare size={16} aria-hidden="true" />
         </button>
-        <button type="button" className="toolbar-icon-button" aria-label={`Print traveler for order ${orderId}`} title="Print traveler" disabled={!readyToRelease}>
+        <button
+          type="button"
+          className="toolbar-icon-button"
+          aria-label={`Print traveler for order ${orderId}`}
+          title="Print traveler"
+          disabled={!readyToRelease}
+          onClick={onPrint}
+        >
           <Printer size={16} aria-hidden="true" />
         </button>
       </div>
