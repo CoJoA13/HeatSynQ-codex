@@ -110,9 +110,13 @@ textarea {
 }
 
 .toolbar-button:disabled,
+.toolbar-button[aria-disabled='true'],
 .toolbar-icon-button:disabled {
   color: #6b7280;
   background: #e5e7eb;
+}
+
+.toolbar-icon-button:disabled {
   cursor: not-allowed;
 }
 

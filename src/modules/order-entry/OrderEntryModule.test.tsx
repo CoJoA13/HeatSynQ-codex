@@ -80,8 +80,26 @@ describe('OrderEntryModule', () => {
     await user.click(screen.getByRole('button', { name: /add container/i }));
 
     expect(screen.getByRole('heading', { name: 'Container Totals' })).toBeVisible();
-    expect(screen.getByLabelText('Container 1 quantity')).toHaveValue(1);
+    expect(screen.getByLabelText('Container 1 quantity')).toHaveValue(0);
     expect(screen.getByText('Net weight 0.00 lb')).toBeVisible();
+  });
+
+  it('keeps release blocked for blank container and part rows until real quantity or weight is entered', async () => {
+    const user = userEvent.setup();
+    render(<OrderEntryModule currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('button', { name: /new order/i }));
+    await user.selectOptions(screen.getByLabelText('Customer'), 'cust-amz');
+    await user.click(screen.getByRole('tab', { name: 'Process' }));
+    await user.selectOptions(screen.getByLabelText('Process master'), '12-496783-HT');
+    await user.click(screen.getByRole('tab', { name: 'Parts' }));
+    await user.click(screen.getByRole('button', { name: /add container/i }));
+    await user.click(screen.getByRole('button', { name: /add part/i }));
+
+    await user.click(screen.getByRole('button', { name: /release order/i }));
+
+    expect(screen.getByText(/Release blocked\. Missing: Quantity or weight/i)).toBeVisible();
+    expect(screen.getByRole('button', { name: /release order/i })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('uses readiness items as shortcuts to the related tabs', async () => {

@@ -68,7 +68,12 @@ export function OrderToolbar({
       </div>
 
       <div className="toolbar-group">
-        <button type="button" className="toolbar-button toolbar-button-release" disabled={!readyToRelease} onClick={onCheck}>
+        <button
+          type="button"
+          className="toolbar-button toolbar-button-release"
+          aria-disabled={!readyToRelease}
+          onClick={onCheck}
+        >
           <Send size={16} aria-hidden="true" />
           <span>Release Order</span>
         </button>

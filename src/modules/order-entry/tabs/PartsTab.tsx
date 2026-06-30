@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { calculateContainerNetWeight, calculateOrderWeights } from '../../../domain/weights';
 import type { Container, Order, PartLine } from '../../../domain/types';
@@ -12,7 +13,7 @@ function createContainer(): Container {
     id: crypto.randomUUID(),
     type: '',
     count: 1,
-    quantity: 1,
+    quantity: 0,
     grossWeight: 0,
     tareWeight: 0,
     containerId: '',
@@ -25,7 +26,7 @@ function createPart(): PartLine {
     partNumber: '',
     customerPartNumber: '',
     description: '',
-    quantity: 1,
+    quantity: 0,
     eachWeight: 0,
     material: '',
     thickness: 0,
@@ -40,6 +41,46 @@ function toNumber(value: string): number {
 
 function formatWeight(value: number): string {
   return `${value.toFixed(2)} lb`;
+}
+
+interface NumericInputProps {
+  label: string;
+  value: number;
+  min?: string;
+  step?: string;
+  onValueChange: (value: number) => void;
+}
+
+function NumericInput({ label, value, min, step, onValueChange }: NumericInputProps) {
+  const [draft, setDraft] = useState(() => String(value));
+  const focused = useRef(false);
+
+  useEffect(() => {
+    if (!focused.current) {
+      setDraft(String(value));
+    }
+  }, [value]);
+
+  return (
+    <input
+      aria-label={label}
+      type="number"
+      min={min}
+      step={step}
+      value={draft}
+      onFocus={() => {
+        focused.current = true;
+      }}
+      onBlur={() => {
+        focused.current = false;
+        setDraft(String(value));
+      }}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        onValueChange(toNumber(event.target.value));
+      }}
+    />
+  );
 }
 
 export function PartsTab({ order, onOrderChange }: PartsTabProps) {
@@ -126,43 +167,37 @@ export function PartsTab({ order, onOrderChange }: PartsTabProps) {
                         />
                       </td>
                       <td>
-                        <input
-                          aria-label={`Container ${rowNumber} count`}
-                          type="number"
+                        <NumericInput
+                          label={`Container ${rowNumber} count`}
                           min="0"
                           value={container.count}
-                          onChange={(event) => updateContainer(container.id, { count: toNumber(event.target.value) })}
+                          onValueChange={(value) => updateContainer(container.id, { count: value })}
                         />
                       </td>
                       <td>
-                        <input
-                          aria-label={`Container ${rowNumber} quantity`}
-                          type="number"
+                        <NumericInput
+                          label={`Container ${rowNumber} quantity`}
                           min="0"
                           value={container.quantity}
-                          onChange={(event) => updateContainer(container.id, { quantity: toNumber(event.target.value) })}
+                          onValueChange={(value) => updateContainer(container.id, { quantity: value })}
                         />
                       </td>
                       <td>
-                        <input
-                          aria-label={`Container ${rowNumber} gross weight`}
-                          type="number"
+                        <NumericInput
+                          label={`Container ${rowNumber} gross weight`}
                           min="0"
                           step="0.01"
                           value={container.grossWeight}
-                          onChange={(event) =>
-                            updateContainer(container.id, { grossWeight: toNumber(event.target.value) })
-                          }
+                          onValueChange={(value) => updateContainer(container.id, { grossWeight: value })}
                         />
                       </td>
                       <td>
-                        <input
-                          aria-label={`Container ${rowNumber} tare weight`}
-                          type="number"
+                        <NumericInput
+                          label={`Container ${rowNumber} tare weight`}
                           min="0"
                           step="0.01"
                           value={container.tareWeight}
-                          onChange={(event) => updateContainer(container.id, { tareWeight: toNumber(event.target.value) })}
+                          onValueChange={(value) => updateContainer(container.id, { tareWeight: value })}
                         />
                       </td>
                       <td className="number-cell">Net weight {formatWeight(calculateContainerNetWeight(container))}</td>
@@ -252,22 +287,20 @@ export function PartsTab({ order, onOrderChange }: PartsTabProps) {
                         />
                       </td>
                       <td>
-                        <input
-                          aria-label={`Part ${rowNumber} quantity`}
-                          type="number"
+                        <NumericInput
+                          label={`Part ${rowNumber} quantity`}
                           min="0"
                           value={part.quantity}
-                          onChange={(event) => updatePart(part.id, { quantity: toNumber(event.target.value) })}
+                          onValueChange={(value) => updatePart(part.id, { quantity: value })}
                         />
                       </td>
                       <td>
-                        <input
-                          aria-label={`Part ${rowNumber} each weight`}
-                          type="number"
+                        <NumericInput
+                          label={`Part ${rowNumber} each weight`}
                           min="0"
                           step="0.01"
                           value={part.eachWeight}
-                          onChange={(event) => updatePart(part.id, { eachWeight: toNumber(event.target.value) })}
+                          onValueChange={(value) => updatePart(part.id, { eachWeight: value })}
                         />
                       </td>
                       <td className="number-cell">{formatWeight(part.quantity * part.eachWeight)}</td>
@@ -279,13 +312,12 @@ export function PartsTab({ order, onOrderChange }: PartsTabProps) {
                         />
                       </td>
                       <td>
-                        <input
-                          aria-label={`Part ${rowNumber} thickness`}
-                          type="number"
+                        <NumericInput
+                          label={`Part ${rowNumber} thickness`}
                           min="0"
                           step="0.001"
                           value={part.thickness}
-                          onChange={(event) => updatePart(part.id, { thickness: toNumber(event.target.value) })}
+                          onValueChange={(value) => updatePart(part.id, { thickness: value })}
                         />
                       </td>
                       <td className="checkbox-cell">
