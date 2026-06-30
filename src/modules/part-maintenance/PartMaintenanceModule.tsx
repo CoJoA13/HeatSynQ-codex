@@ -120,12 +120,17 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
     setSaveSummary('');
   }
 
+  function clearDraftFeedback() {
+    setValidationMessages([]);
+    setSaveSummary('');
+  }
+
   function updateDraftField<FieldName extends keyof PartTextField>(
     fieldName: FieldName,
     value: CustomerPart[FieldName],
   ) {
     setDraft((currentDraft) => ({ ...currentDraft, [fieldName]: value }));
-    setSaveSummary('');
+    clearDraftFeedback();
   }
 
   function updateDraftBoolean<FieldName extends keyof PartBooleanField>(
@@ -133,12 +138,12 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
     value: CustomerPart[FieldName],
   ) {
     setDraft((currentDraft) => ({ ...currentDraft, [fieldName]: value }));
-    setSaveSummary('');
+    clearDraftFeedback();
   }
 
   function updateDraftNumber(fieldName: 'eachWeight' | 'thickness', value: number) {
     setDraft((currentDraft) => ({ ...currentDraft, [fieldName]: value }));
-    setSaveSummary('');
+    clearDraftFeedback();
   }
 
   function updatePrice<FieldName extends keyof PriceTextField>(fieldName: FieldName, value: PartPriceSummary[FieldName]) {
@@ -146,7 +151,7 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
       ...currentDraft,
       price: { ...currentDraft.price, [fieldName]: value },
     }));
-    setSaveSummary('');
+    clearDraftFeedback();
   }
 
   function updatePriceNumber(fieldName: 'setup' | 'amount' | 'minimum', value: number) {
@@ -154,7 +159,7 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
       ...currentDraft,
       price: { ...currentDraft.price, [fieldName]: value },
     }));
-    setSaveSummary('');
+    clearDraftFeedback();
   }
 
   function updateQuote<FieldName extends keyof QuoteTextField>(fieldName: FieldName, value: PartQuoteSummary[FieldName]) {
@@ -162,7 +167,7 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
       ...currentDraft,
       quote: { ...currentDraft.quote, [fieldName]: value },
     }));
-    setSaveSummary('');
+    clearDraftFeedback();
   }
 
   function updateQuoteNumber(fieldName: 'quotedQuantity', value: number) {
@@ -170,7 +175,7 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
       ...currentDraft,
       quote: { ...currentDraft.quote, [fieldName]: value },
     }));
-    setSaveSummary('');
+    clearDraftFeedback();
   }
 
   function savePart() {
@@ -185,7 +190,8 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
 
     const savedPart = structuredClone(draft);
     setParts((currentParts) => {
-      const existingIndex = currentParts.findIndex((part) => part.id === selectedPartId);
+      const existingPartId = selectedPartId || savedPart.id;
+      const existingIndex = currentParts.findIndex((part) => part.id === existingPartId);
       if (existingIndex === -1) return [...currentParts, savedPart];
 
       return currentParts.map((part, index) => (index === existingIndex ? savedPart : part));
@@ -197,11 +203,11 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
 
   return (
     <ModuleGate user={currentUser} permission="Part Maintenance" moduleName="Part Maintenance">
-      <main className="master-data-module part-maintenance-module">
+      <section className="master-data-module part-maintenance-module" aria-labelledby="part-maintenance-title">
         <header className="master-data-header">
           <div>
             <p className="module-label">Master Data</p>
-            <h1>Part Maintenance</h1>
+            <h1 id="part-maintenance-title">Part Maintenance</h1>
           </div>
           <div className="toolbar-group">
             <button className="toolbar-button" type="button" onClick={createPart}>
@@ -474,7 +480,7 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
             </section>
           </section>
         </div>
-      </main>
+      </section>
     </ModuleGate>
   );
 }
