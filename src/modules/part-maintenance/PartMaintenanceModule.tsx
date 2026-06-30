@@ -3,13 +3,29 @@ import { ModuleGate } from '../../components/ModuleGate';
 import {
   customerParts as seededCustomerParts,
   customers,
-  processMasters,
+  plantSupportDictionaryEntries as seededPlantSupportDictionaryEntries,
+  processMasters as seededProcessMasters,
+  processRevisions as seededProcessRevisions,
 } from '../../data/seed';
 import { getPartOrderEntryStatus, validateCustomerPart } from '../../domain/masterData';
-import type { CustomerPart, PartPriceSummary, PartQuoteSummary, User } from '../../domain/types';
+import { getActiveProcessRevision, getProcessDisplaySummary } from '../../domain/processFoundation';
+import type {
+  CustomerPart,
+  PartPriceSummary,
+  PartQuoteSummary,
+  PlantSupportDictionaryEntry,
+  ProcessMaster,
+  ProcessRevision,
+  User,
+} from '../../domain/types';
 
 interface PartMaintenanceModuleProps {
   currentUser: User;
+  parts?: CustomerPart[];
+  onPartsChange?: (parts: CustomerPart[]) => void;
+  processMasters?: ProcessMaster[];
+  processRevisions?: ProcessRevision[];
+  plantSupportDictionaryEntries?: PlantSupportDictionaryEntry[];
 }
 
 type PartTextField = Pick<
@@ -42,6 +58,7 @@ function createBlankPart(): CustomerPart {
     partId: '',
     customerId: '',
     processMasterId: '',
+    processRevisionId: '',
     partName: '',
     description: '',
     outgoingPartNumber: '',
@@ -79,21 +96,80 @@ function getCustomerName(customerId: string): string {
   return customers.find((customer) => customer.id === customerId)?.name ?? 'Unassigned customer';
 }
 
-export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProps) {
-  const [parts, setParts] = useState<CustomerPart[]>(cloneParts);
-  const [selectedPartId, setSelectedPartId] = useState(seededCustomerParts[0]?.id ?? '');
-  const [draft, setDraft] = useState<CustomerPart>(() =>
-    structuredClone(seededCustomerParts[0] ?? createBlankPart()),
-  );
+export function PartMaintenanceModule({
+  currentUser,
+  parts,
+  onPartsChange,
+  processMasters,
+  processRevisions,
+  plantSupportDictionaryEntries,
+}: PartMaintenanceModuleProps) {
+  const initialParts = parts ?? seededCustomerParts;
+  const initialPart = initialParts[0];
+  const [localParts, setLocalParts] = useState<CustomerPart[]>(cloneParts);
+  const [selectedPartId, setSelectedPartId] = useState(initialPart?.id ?? '');
+  const [draft, setDraft] = useState<CustomerPart>(() => structuredClone(initialPart ?? createBlankPart()));
   const [searchQuery, setSearchQuery] = useState('');
   const [includeInactive, setIncludeInactive] = useState(false);
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
   const [saveSummary, setSaveSummary] = useState('');
+  const effectiveParts = parts ?? localParts;
+  const updateParts = onPartsChange ?? setLocalParts;
+  const effectiveProcessMasters = processMasters ?? seededProcessMasters;
+  const effectiveProcessRevisions = processRevisions ?? seededProcessRevisions;
+  const effectiveDictionaries = plantSupportDictionaryEntries ?? seededPlantSupportDictionaryEntries;
+  const selectedProcessMaster = useMemo(
+    () => effectiveProcessMasters.find((processMaster) => processMaster.id === draft.processMasterId),
+    [draft.processMasterId, effectiveProcessMasters],
+  );
+  const activeProcessRevision = useMemo(
+    () =>
+      selectedProcessMaster
+        ? getActiveProcessRevision(selectedProcessMaster, effectiveProcessRevisions)
+        : undefined,
+    [effectiveProcessRevisions, selectedProcessMaster],
+  );
+  const storedProcessRevision = useMemo(
+    () =>
+      draft.processRevisionId
+        ? effectiveProcessRevisions.find((revision) => revision.id === draft.processRevisionId)
+        : undefined,
+    [draft.processRevisionId, effectiveProcessRevisions],
+  );
+  const storedProcessRevisionMissing = Boolean(draft.processRevisionId && !storedProcessRevision);
+  const storedProcessRevisionMismatch = Boolean(
+    selectedProcessMaster &&
+      storedProcessRevision &&
+      storedProcessRevision.processMasterId !== selectedProcessMaster.id,
+  );
+  const processRevisionForSummary =
+    selectedProcessMaster && draft.processRevisionId
+      ? storedProcessRevision?.processMasterId === selectedProcessMaster.id
+        ? storedProcessRevision
+        : undefined
+      : activeProcessRevision;
+  const processSummary = useMemo(
+    () =>
+      selectedProcessMaster
+        ? getProcessDisplaySummary(selectedProcessMaster, processRevisionForSummary, effectiveDictionaries)
+        : undefined,
+    [effectiveDictionaries, processRevisionForSummary, selectedProcessMaster],
+  );
+  const processRevisionStatus =
+    processRevisionForSummary && activeProcessRevision && processRevisionForSummary.id === activeProcessRevision.id
+      ? 'Current active revision'
+      : 'Not current active revision';
+  const processRevisionMessages = [
+    ...(storedProcessRevisionMissing ? ['Stored process revision was not found.'] : []),
+    ...(storedProcessRevisionMismatch
+      ? ['Stored process revision does not belong to selected process master.']
+      : []),
+  ];
 
   const filteredParts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
 
-    return parts.filter((part) => {
+    return effectiveParts.filter((part) => {
       if (!includeInactive && part.inactive) return false;
       if (!normalizedQuery) return true;
 
@@ -101,9 +177,12 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
         `${part.partId} ${part.partName} ${part.description} ${getCustomerName(part.customerId)}`.toLocaleLowerCase();
       return searchableText.includes(normalizedQuery);
     });
-  }, [includeInactive, parts, searchQuery]);
+  }, [effectiveParts, includeInactive, searchQuery]);
 
-  const orderEntryStatus = useMemo(() => getPartOrderEntryStatus(draft, processMasters), [draft]);
+  const orderEntryStatus = useMemo(
+    () => getPartOrderEntryStatus(draft, effectiveProcessMasters),
+    [draft, effectiveProcessMasters],
+  );
 
   function selectPart(part: CustomerPart) {
     setSelectedPartId(part.id);
@@ -179,7 +258,7 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
   }
 
   function savePart() {
-    const result = validateCustomerPart(draft, parts, processMasters);
+    const result = validateCustomerPart(draft, effectiveParts, effectiveProcessMasters);
     const messages = [...result.errors, ...result.warnings];
 
     if (!result.valid) {
@@ -189,13 +268,14 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
     }
 
     const savedPart = structuredClone(draft);
-    setParts((currentParts) => {
-      const existingPartId = selectedPartId || savedPart.id;
-      const existingIndex = currentParts.findIndex((part) => part.id === existingPartId);
-      if (existingIndex === -1) return [...currentParts, savedPart];
+    const existingPartId = selectedPartId || savedPart.id;
+    const existingIndex = effectiveParts.findIndex((part) => part.id === existingPartId);
+    const nextParts =
+      existingIndex === -1
+        ? [...effectiveParts, savedPart]
+        : effectiveParts.map((part, index) => (index === existingIndex ? savedPart : part));
 
-      return currentParts.map((part, index) => (index === existingIndex ? savedPart : part));
-    });
+    updateParts(nextParts);
     setSelectedPartId(savedPart.id);
     setValidationMessages(result.warnings);
     setSaveSummary('Part saved.');
@@ -354,9 +434,9 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
                     onChange={(event) => updateDraftField('processMasterId', event.target.value)}
                   >
                     <option value="">Unassigned</option>
-                    {processMasters.map((processMaster) => (
+                    {effectiveProcessMasters.map((processMaster) => (
                       <option key={processMaster.id} value={processMaster.id}>
-                        {processMaster.id} - {processMaster.processCode}
+                        {processMaster.id} - {processMaster.name}
                       </option>
                     ))}
                   </select>
@@ -413,6 +493,40 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
                   Cert required
                 </label>
               </div>
+              {processRevisionMessages.length > 0 && (
+                <div className="validation-summary" role="alert">
+                  {processRevisionMessages.map((message) => (
+                    <p key={message}>{message}</p>
+                  ))}
+                </div>
+              )}
+              {processSummary && processRevisionMessages.length === 0 && (
+                <dl className="definition-grid process-revision-grid">
+                  <div>
+                    <dt>Part process revision</dt>
+                    <dd>{processSummary.revisionLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>Revision status</dt>
+                    <dd>{processRevisionStatus}</dd>
+                  </div>
+                  <div>
+                    <dt>Process steps</dt>
+                    <dd>
+                      {processSummary.stepCount} {processSummary.stepCount === 1 ? 'process step' : 'process steps'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Required inspections</dt>
+                    <dd>
+                      {processSummary.requiredInspectionCount}{' '}
+                      {processSummary.requiredInspectionCount === 1
+                        ? 'required inspection'
+                        : 'required inspections'}
+                    </dd>
+                  </div>
+                </dl>
+              )}
             </section>
 
             <section className="master-section" aria-labelledby="part-pricing-heading">

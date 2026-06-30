@@ -1,13 +1,31 @@
-import { processMasters } from '../../../data/seed';
-import type { Order } from '../../../domain/types';
+import {
+  plantSupportDictionaryEntries as seededPlantSupportDictionaryEntries,
+  processMasters as seededProcessMasters,
+  processRevisions as seededProcessRevisions,
+} from '../../../data/seed';
+import { getActiveProcessRevision, getProcessDisplaySummary } from '../../../domain/processFoundation';
+import type { Order, PlantSupportDictionaryEntry, ProcessMaster, ProcessRevision } from '../../../domain/types';
 
 interface ProcessTabProps {
   order: Order;
   onOrderChange: (order: Order) => void;
+  processMasters?: ProcessMaster[];
+  processRevisions?: ProcessRevision[];
+  plantSupportDictionaryEntries?: PlantSupportDictionaryEntry[];
 }
 
-export function ProcessTab({ order, onOrderChange }: ProcessTabProps) {
-  const process = processMasters.find((entry) => entry.id === order.processMasterId);
+export function ProcessTab({
+  order,
+  onOrderChange,
+  processMasters = seededProcessMasters,
+  processRevisions = seededProcessRevisions,
+  plantSupportDictionaryEntries = seededPlantSupportDictionaryEntries,
+}: ProcessTabProps) {
+  const processMaster = processMasters.find((entry) => entry.id === order.processMasterId);
+  const activeRevision = processMaster ? getActiveProcessRevision(processMaster, processRevisions) : undefined;
+  const processSummary = processMaster
+    ? getProcessDisplaySummary(processMaster, activeRevision, plantSupportDictionaryEntries)
+    : undefined;
 
   return (
     <div className="tab-content-stack">
@@ -26,37 +44,45 @@ export function ProcessTab({ order, onOrderChange }: ProcessTabProps) {
             <option value="">Select process master</option>
             {processMasters.map((entry) => (
               <option key={entry.id} value={entry.id}>
-                {entry.id} - {entry.processCode}
+                {entry.id} - {entry.name}
               </option>
             ))}
           </select>
         </label>
 
-        {process ? (
+        {processSummary ? (
           <dl className="definition-grid">
             <div>
               <dt>Process code</dt>
-              <dd>{process.processCode}</dd>
+              <dd>{processSummary.processCode || 'Unassigned'}</dd>
             </div>
             <div>
               <dt>Revision</dt>
-              <dd>{process.revision}</dd>
+              <dd>{processSummary.revisionLabel}</dd>
             </div>
             <div>
               <dt>Material</dt>
-              <dd>{process.material}</dd>
+              <dd>{processSummary.material || 'None'}</dd>
             </div>
             <div>
-              <dt>Certification ID</dt>
-              <dd>{process.certificationId || 'None'}</dd>
+              <dt>Cert format</dt>
+              <dd>{processSummary.certFormat || 'None'}</dd>
             </div>
             <div>
-              <dt>Spec</dt>
-              <dd>{process.spec}</dd>
+              <dt>Specification</dt>
+              <dd>{processSummary.specification || 'None'}</dd>
             </div>
             <div>
-              <dt>Comments</dt>
-              <dd>{process.comments}</dd>
+              <dt>Process notes</dt>
+              <dd>{activeRevision?.notes || 'None'}</dd>
+            </div>
+            <div>
+              <dt>Step count</dt>
+              <dd>{processSummary.stepCount}</dd>
+            </div>
+            <div>
+              <dt>Required inspections</dt>
+              <dd>{processSummary.requiredInspectionCount}</dd>
             </div>
           </dl>
         ) : (

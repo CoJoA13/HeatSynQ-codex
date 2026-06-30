@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { users } from '../../data/seed';
+import { plantSupportDictionaryEntries, users } from '../../data/seed';
 import { OrderEntryModule } from './OrderEntryModule';
 
 describe('OrderEntryModule', () => {
@@ -55,6 +55,51 @@ describe('OrderEntryModule', () => {
     await user.click(screen.getByRole('tab', { name: 'Steps' }));
 
     expect(screen.getByText('Oil quench')).toBeInTheDocument();
+  });
+
+  it('displays active process revision details and enhanced steps from shared process data', async () => {
+    const user = userEvent.setup();
+    render(<OrderEntryModule currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('tab', { name: 'Process' }));
+    await user.selectOptions(screen.getByLabelText('Process master'), '15-29900-003');
+
+    expect(screen.getByText('Rev 16 Active')).toBeInTheDocument();
+    expect(screen.getByText('Generic - AM')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Steps' }));
+
+    expect(screen.getByText('Austenitize')).toBeInTheDocument();
+    expect(screen.getByText('+/- 15 F')).toBeInTheDocument();
+    expect(screen.getByText('Controlled')).toBeInTheDocument();
+  });
+
+  it('resolves order step equipment from equipment dictionary entries only', async () => {
+    const user = userEvent.setup();
+    render(
+      <OrderEntryModule
+        currentUser={users[0]}
+        plantSupportDictionaryEntries={[
+          {
+            id: 'dict-equipment-furnace-2',
+            kind: 'Process Code',
+            code: 'WRONG',
+            name: 'Wrong kind with matching ID',
+            description: 'Intentional dictionary ID collision for lookup coverage.',
+            active: true,
+            category: 'Collision',
+          },
+          ...plantSupportDictionaryEntries,
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Process' }));
+    await user.selectOptions(screen.getByLabelText('Process master'), '15-29900-003');
+    await user.click(screen.getByRole('tab', { name: 'Steps' }));
+
+    expect(screen.getAllByText('Furnace 2')).toHaveLength(3);
+    expect(screen.queryByText('Wrong kind with matching ID')).not.toBeInTheDocument();
   });
 
   it('wires toolbar actions to the active order state', async () => {

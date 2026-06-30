@@ -1,4 +1,4 @@
-export type ModulePermission = 'Order Entry' | 'Customer Maintenance' | 'Part Maintenance';
+export type ModulePermission = 'Order Entry' | 'Customer Maintenance' | 'Part Maintenance' | 'Process Maintenance';
 
 export interface User {
   id: string;
@@ -94,6 +94,7 @@ export interface CustomerPart {
   partId: string;
   customerId: string;
   processMasterId: string;
+  processRevisionId: string;
   partName: string;
   description: string;
   outgoingPartNumber: string;
@@ -136,24 +137,82 @@ export interface PartLine {
   verified: boolean;
 }
 
+export type ProcessRevisionStatus = 'Active' | 'Draft';
+
+export type PlantSupportDictionaryKind =
+  | 'Process Code'
+  | 'Equipment'
+  | 'Group'
+  | 'Cost Center'
+  | 'Inspection Code'
+  | 'Inspection Scale'
+  | 'Table Key'
+  | 'Standard Step Template';
+
+export interface PlantSupportDictionaryEntry {
+  id: string;
+  kind: PlantSupportDictionaryKind;
+  code: string;
+  name: string;
+  description: string;
+  active: boolean;
+  category: string;
+}
+
 export interface ProcessStep {
   id: string;
   sequence: number;
   name: string;
-  furnace: string;
+  tableKeyId: string;
+  processCodeId: string;
+  equipmentId: string;
+  groupId: string;
+  costCenterId: string;
   temperatureF: number;
   minutes: number;
+  tolerance: string;
+  atmosphere: string;
+  quenchMedia: string;
+  hardnessTarget: string;
+  caseDepthTarget: string;
+  instructions: string;
+}
+
+export interface ProcessInspectionRequirement {
+  id: string;
+  inspectionCodeId: string;
+  inspectionScaleId: string;
+  timing: string;
+  frequency: string;
+  required: boolean;
+  targetValue: string;
+  minimumValue: string;
+  maximumValue: string;
+  certVisible: boolean;
+  notes: string;
+}
+
+export interface ProcessRevision {
+  id: string;
+  processMasterId: string;
+  revision: number;
+  status: ProcessRevisionStatus;
+  effectiveDate: string;
+  processCodeId: string;
+  material: string;
+  specification: string;
+  certificationId: string;
+  certFormat: string;
+  notes: string;
+  steps: ProcessStep[];
+  inspections: ProcessInspectionRequirement[];
 }
 
 export interface ProcessMaster {
   id: string;
-  revision: number;
-  processCode: string;
-  material: string;
-  certificationId: string;
-  spec: string;
-  comments: string;
-  steps: ProcessStep[];
+  name: string;
+  activeRevisionId: string;
+  draftRevisionId: string;
 }
 
 export interface OrderEvent {

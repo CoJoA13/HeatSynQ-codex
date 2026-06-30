@@ -1,7 +1,13 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { users } from '../../data/seed';
+import {
+  customerParts,
+  plantSupportDictionaryEntries,
+  processMasters,
+  processRevisions,
+  users,
+} from '../../data/seed';
 import { PartMaintenanceModule } from './PartMaintenanceModule';
 
 describe('PartMaintenanceModule', () => {
@@ -91,5 +97,64 @@ describe('PartMaintenanceModule', () => {
     const partList = screen.getByRole('complementary', { name: 'Part list' });
 
     expect(within(partList).queryByRole('list')).not.toBeInTheDocument();
+  });
+
+  it('shows shared active process revision details for a linked part', async () => {
+    const user = userEvent.setup();
+    render(<PartMaintenanceModule currentUser={users[0]} />);
+
+    await user.type(screen.getByLabelText('Search parts'), '15-29900-010');
+    await user.click(screen.getByRole('button', { name: /15-29900-010 CNTR TOW/i }));
+
+    expect(screen.getByText('Rev 16 Active')).toBeInTheDocument();
+    expect(screen.getByText('Current active revision')).toBeInTheDocument();
+    expect(screen.getByText('4 process steps')).toBeInTheDocument();
+    expect(screen.getByText('1 required inspection')).toBeInTheDocument();
+  });
+
+  it('shows a stale stored process revision instead of the process master active revision', () => {
+    const staleRevisionParts = [
+      {
+        ...structuredClone(customerParts[0]),
+        processRevisionId: 'proc-rev-austemper-draft',
+        revision: '17',
+      },
+    ];
+
+    render(
+      <PartMaintenanceModule
+        currentUser={users[0]}
+        parts={staleRevisionParts}
+        processMasters={processMasters}
+        processRevisions={processRevisions}
+        plantSupportDictionaryEntries={plantSupportDictionaryEntries}
+      />,
+    );
+
+    expect(screen.getByText('Rev 17 Draft')).toBeInTheDocument();
+    expect(screen.getByText('Not current active revision')).toBeInTheDocument();
+    expect(screen.queryByText('Rev 16 Active')).not.toBeInTheDocument();
+  });
+
+  it('flags a stored process revision that belongs to another process master', () => {
+    const mismatchedRevisionParts = [
+      {
+        ...structuredClone(customerParts[0]),
+        processRevisionId: 'proc-rev-carburize-4',
+      },
+    ];
+
+    render(
+      <PartMaintenanceModule
+        currentUser={users[0]}
+        parts={mismatchedRevisionParts}
+        processMasters={processMasters}
+        processRevisions={processRevisions}
+        plantSupportDictionaryEntries={plantSupportDictionaryEntries}
+      />,
+    );
+
+    expect(screen.getByText('Stored process revision does not belong to selected process master.')).toBeInTheDocument();
+    expect(screen.queryByText('Rev 16 Active')).not.toBeInTheDocument();
   });
 });

@@ -857,6 +857,47 @@ textarea {
   height: 16px;
 }
 
+.process-maintenance-module .process-revision-grid,
+.process-maintenance-module .process-workflow-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.process-revision-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.process-table-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.process-assignment-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.process-maintenance-module .data-table input,
+.process-maintenance-module .data-table select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid #aeb7c4;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #111827;
+  padding: 2px 6px;
+}
+
+.process-steps-table {
+  min-width: 980px;
+}
+
+.process-inspections-table {
+  min-width: 860px;
+}
+
 .number-cell {
   color: #172033;
   font-size: 0.82rem;
