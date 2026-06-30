@@ -426,6 +426,20 @@ describe('getProcessDisplaySummary', () => {
       requiredInspectionCount: 1,
     });
   });
+
+  it('returns an unassigned summary when the revision is missing', () => {
+    expect(getProcessDisplaySummary(processMaster, undefined, dictionaries)).toEqual({
+      processMasterId: '15-29900-003',
+      name: 'Ductile Iron Austemper Route',
+      revisionLabel: 'No active revision',
+      processCode: 'Unassigned',
+      material: '',
+      specification: '',
+      certFormat: '',
+      stepCount: 0,
+      requiredInspectionCount: 0,
+    });
+  });
 });
 
 describe('assignProcessRevisionToParts', () => {

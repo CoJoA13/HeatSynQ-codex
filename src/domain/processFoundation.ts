@@ -219,9 +219,23 @@ export function getProcessRevisionReadiness(
 
 export function getProcessDisplaySummary(
   processMaster: ProcessMaster,
-  revision: ProcessRevision,
+  revision: ProcessRevision | undefined,
   dictionaries: PlantSupportDictionaryEntry[],
 ): ProcessDisplaySummary {
+  if (!revision) {
+    return {
+      processMasterId: processMaster.id,
+      name: processMaster.name,
+      revisionLabel: 'No active revision',
+      processCode: 'Unassigned',
+      material: '',
+      specification: '',
+      certFormat: '',
+      stepCount: 0,
+      requiredInspectionCount: 0,
+    };
+  }
+
   const processCode = findDictionaryEntry(dictionaries, revision.processCodeId, 'Process Code');
 
   return {
