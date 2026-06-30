@@ -1,5 +1,7 @@
 import type { Order } from './types';
 
+const WEIGHT_MATCH_TOLERANCE = 0.000001;
+
 export interface WeightInput {
   grossWeight: number;
   tareWeight: number;
@@ -17,6 +19,10 @@ export interface OrderWeightTotals {
 
 export function calculateContainerNetWeight(input: WeightInput): number {
   return Math.max(0, input.grossWeight - input.tareWeight);
+}
+
+function valuesMatch(left: number, right: number): boolean {
+  return Math.abs(left - right) <= WEIGHT_MATCH_TOLERANCE;
 }
 
 export function calculateOrderWeights(order: Order): OrderWeightTotals {
@@ -37,6 +43,6 @@ export function calculateOrderWeights(order: Order): OrderWeightTotals {
     containerNetWeight,
     partQuantity,
     partWeight,
-    hasMismatch: containerQuantity !== partQuantity || containerNetWeight !== partWeight,
+    hasMismatch: !valuesMatch(containerQuantity, partQuantity) || !valuesMatch(containerNetWeight, partWeight),
   };
 }

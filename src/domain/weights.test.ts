@@ -68,4 +68,28 @@ describe('calculateOrderWeights', () => {
     expect(totals.partWeight).toBe(150);
     expect(totals.hasMismatch).toBe(true);
   });
+
+  it('does not flag tiny decimal precision differences as mismatches', () => {
+    const totals = calculateOrderWeights({
+      ...baseOrder,
+      containers: [{ id: 'c1', type: 'Box', count: 1, quantity: 3, grossWeight: 0.3, tareWeight: 0, containerId: '' }],
+      parts: [
+        {
+          id: 'p1',
+          partNumber: 'A',
+          customerPartNumber: 'A',
+          description: 'Part A',
+          quantity: 3,
+          eachWeight: 0.1,
+          material: 'Steel',
+          thickness: 1,
+          verified: true,
+        },
+      ],
+    });
+
+    expect(totals.containerNetWeight).toBe(0.3);
+    expect(totals.partWeight).toBe(0.1 * 3);
+    expect(totals.hasMismatch).toBe(false);
+  });
 });
