@@ -6,7 +6,7 @@ Date: 2026-06-29
 
 HeatSynQ will start with an `Order Entry` module that replaces the Visual Shop receiving/order-entry workflow first. The first version will be a fully interactive prototype focused on receiving: entering customer/order details, containers, parts, weights, process master selection, process steps, notes, events, documents, and release readiness.
 
-The design intentionally keeps Visual Shop muscle memory where it helps: toolbar actions, tabbed order sections, and persistent right-side activity panels. The main improvement is a visible readiness layer that shows whether an order can be released/printed and exactly what is missing when it cannot.
+The design uses Visual Shop as workflow reference material, not as a UI clone target. It keeps familiar concepts where they help, such as toolbar actions, tabbed order sections, and persistent activity panels, but HeatSynQ can redesign layout, grouping, and interaction patterns to reduce redundancy, improve readability, and make receiving easier to use. The main improvement is a visible readiness layer that shows whether an order can be released/printed and exactly what is missing when it cannot.
 
 ## Larger System Direction
 

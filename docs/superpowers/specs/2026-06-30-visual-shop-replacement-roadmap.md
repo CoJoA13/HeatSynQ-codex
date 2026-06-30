@@ -33,7 +33,8 @@ The PDF covers these major areas:
 - Favor heat-treating workflows first. The most important long-term path is receiving/order entry into process recipes, tracking, inspection, shipping, certifications, and customer visibility.
 - Build shared data before deep workflow automation. Customers, parts, process masters, plant support dictionaries, permissions, and audit history must be coherent before tracking or billing can be trustworthy.
 - Keep module permissions explicit. Users are not assigned roles; users are granted named permissions that enable modules and later specific actions.
-- Preserve Visual Shop muscle memory where it helps. Dense lists, toolbar actions, tabs, customer/part/process lookup, and status-oriented workflow are familiar and should remain recognizable.
+- Use Visual Shop as workflow and data source material, not as a UI clone target. HeatSynQ should preserve familiar concepts where they help, but redesign screens to reduce redundant entry, improve readability, simplify navigation, and make common work faster.
+- Preserve Visual Shop muscle memory selectively. Dense lists, toolbar actions, tabs, customer/part/process lookup, and status-oriented workflow are useful only when they support speed and clarity.
 - Improve clarity around readiness, dependencies, and missing information. Visual Shop often hides required setup in many places; HeatSynQ should surface why an order, part, process, shipment, invoice, or tracking step is not ready.
 - Plan for a centralized on-prem database. The production system must support multiple simultaneous users working against shared records.
 - Treat custom fields and configuration as first-class design concerns. Visual Shop relies heavily on program defaults, custom tabs, user-defined fields, and plant-specific behavior. HeatSynQ should support configurable fields and plant settings without letting the core model become unclear.
@@ -527,6 +528,7 @@ This preserves the user's selected path while making it source-grounded and safe
 ## Risks
 
 - Visual Shop has many custom defaults and plant-specific behaviors. HeatSynQ should not try to clone every option before the core workflow is understood.
+- Visual Shop's UI can be redundant and hard to read. HeatSynQ should avoid copying those weaknesses even when it keeps the underlying workflow.
 - Part Maintenance can become too large if pricing, overlays, pictures, formulas, custom tabs, and reworks are all included at once.
 - Tracking depends on process and order-load-step models. Building tracking before process foundation risks rework.
 - Billing and A/R require financial correctness and lock/close behavior. They should not be prototyped casually once real data is involved.
@@ -553,3 +555,4 @@ This preserves the user's selected path while making it source-grounded and safe
 - Customer Maintenance and Part Maintenance should be separate but linked modules.
 - The first Master Data slice should build both modules shallowly together.
 - The PDF roadmap should guide future planning before the Master Data spec is finalized.
+- HeatSynQ should not replicate Visual Shop's UI one-for-one; UI/UX changes are welcome when they reduce redundancy, improve ease of use, or make information easier to read.
