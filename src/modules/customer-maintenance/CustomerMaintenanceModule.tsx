@@ -112,6 +112,13 @@ export function CustomerMaintenanceModule({ currentUser }: CustomerMaintenanceMo
     setSaveSummary('');
   }
 
+  function cancelEdits() {
+    const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId);
+    setDraft(structuredClone(selectedCustomer ?? createBlankCustomer()));
+    setValidationMessages([]);
+    setSaveSummary('');
+  }
+
   function updateDraftField<FieldName extends keyof CustomerTextField>(fieldName: FieldName, value: Customer[FieldName]) {
     setDraft((currentDraft) => ({ ...currentDraft, [fieldName]: value }));
     setSaveSummary('');
@@ -174,7 +181,7 @@ export function CustomerMaintenanceModule({ currentUser }: CustomerMaintenanceMo
       return currentCustomers.map((customer, index) => (index === existingIndex ? savedCustomer : customer));
     });
     setSelectedCustomerId(savedCustomer.id);
-    setValidationMessages([]);
+    setValidationMessages(result.warnings);
     setSaveSummary('Customer saved.');
   }
 
@@ -189,6 +196,9 @@ export function CustomerMaintenanceModule({ currentUser }: CustomerMaintenanceMo
           <div className="toolbar-group">
             <button className="toolbar-button" type="button" onClick={createCustomer}>
               New Customer
+            </button>
+            <button className="toolbar-button" type="button" onClick={cancelEdits}>
+              Cancel Edits
             </button>
             <button className="toolbar-button toolbar-button-primary" type="button" onClick={saveCustomer}>
               Save Customer
@@ -207,7 +217,7 @@ export function CustomerMaintenanceModule({ currentUser }: CustomerMaintenanceMo
                 placeholder="ID or name"
               />
             </label>
-            <div className="simple-list" role="list">
+            <div className="simple-list">
               {filteredCustomers.map((customer) => (
                 <button
                   className="simple-list-row"
@@ -239,7 +249,11 @@ export function CustomerMaintenanceModule({ currentUser }: CustomerMaintenanceMo
               <div className="master-form-grid">
                 <label>
                   Customer ID
-                  <input value={draft.id} onChange={(event) => updateDraftField('id', event.target.value)} />
+                  <input
+                    value={draft.id}
+                    readOnly={selectedCustomerId !== ''}
+                    onChange={(event) => updateDraftField('id', event.target.value)}
+                  />
                 </label>
                 <label>
                   Customer name
