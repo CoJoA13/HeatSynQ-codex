@@ -12,6 +12,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: 'Order Entry' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Customer Maintenance' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Part Maintenance' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Process Maintenance' })).toBeEnabled();
     expect(screen.getByRole('heading', { name: 'Order Entry' })).toBeInTheDocument();
   });
 
@@ -24,6 +25,9 @@ describe('AppShell', () => {
 
     await user.click(screen.getByRole('button', { name: 'Part Maintenance' }));
     expect(screen.getByRole('heading', { name: 'Part Maintenance' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Process Maintenance' }));
+    expect(screen.getByRole('heading', { name: 'Process Maintenance' })).toBeInTheDocument();
   });
 
   it('keeps a single app-level main landmark when switching modules', async () => {
@@ -45,6 +49,21 @@ describe('AppShell', () => {
     render(<AppShell currentUser={partOnlyUser} />);
 
     expect(screen.getByRole('button', { name: 'Order Entry' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Process Maintenance' })).toBeDisabled();
     expect(screen.getByRole('heading', { name: 'Part Maintenance' })).toBeInTheDocument();
+  });
+
+  it('defaults to Process Maintenance for a process-only user', () => {
+    const processOnlyUser: User = {
+      id: 'process-only',
+      name: 'Process Engineer',
+      permissions: ['Process Maintenance'],
+    };
+
+    render(<AppShell currentUser={processOnlyUser} />);
+
+    expect(screen.getByRole('button', { name: 'Order Entry' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Process Maintenance' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('heading', { name: 'Process Maintenance' })).toBeInTheDocument();
   });
 });

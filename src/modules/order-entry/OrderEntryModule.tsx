@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react';
-import { customers, sampleOrder } from '../../data/seed';
+import {
+  customers,
+  plantSupportDictionaryEntries as seededPlantSupportDictionaryEntries,
+  processMasters as seededProcessMasters,
+  processRevisions as seededProcessRevisions,
+  sampleOrder,
+} from '../../data/seed';
 import { validateOrderReadiness, type OrderEntryTab } from '../../domain/readiness';
-import type { Order, User } from '../../domain/types';
+import type { Order, PlantSupportDictionaryEntry, ProcessMaster, ProcessRevision, User } from '../../domain/types';
 import { ModuleGate } from './components/ModuleGate';
 import { ActivityPanels } from './components/ActivityPanels';
 import { OrderHeaderStatus } from './components/OrderHeaderStatus';
@@ -16,6 +22,9 @@ import { StepsTab } from './tabs/StepsTab';
 
 interface OrderEntryModuleProps {
   currentUser: User;
+  processMasters?: ProcessMaster[];
+  processRevisions?: ProcessRevision[];
+  plantSupportDictionaryEntries?: PlantSupportDictionaryEntry[];
 }
 
 function cloneSampleOrder(): Order {
@@ -87,13 +96,21 @@ function tabPanelId(tab: OrderEntryTab): string {
   return `order-panel-${tab.toLowerCase().replace(/\s+/g, '-')}`;
 }
 
-export function OrderEntryModule({ currentUser }: OrderEntryModuleProps) {
+export function OrderEntryModule({
+  currentUser,
+  processMasters,
+  processRevisions,
+  plantSupportDictionaryEntries,
+}: OrderEntryModuleProps) {
   const [order, setOrder] = useState<Order>(() => cloneSampleOrder());
   const [savedOrder, setSavedOrder] = useState<Order>(() => cloneSampleOrder());
   const [activeTab, setActiveTab] = useState<OrderEntryTab>('Order Top');
   const readiness = validateOrderReadiness(order, currentUser);
   const customer = useMemo(() => customers.find((entry) => entry.id === order.customerId), [order.customerId]);
   const customerName = customer?.name ?? 'Unassigned';
+  const effectiveProcessMasters = processMasters ?? seededProcessMasters;
+  const effectiveProcessRevisions = processRevisions ?? seededProcessRevisions;
+  const effectiveDictionaries = plantSupportDictionaryEntries ?? seededPlantSupportDictionaryEntries;
 
   function addEvent(code: string, description: string) {
     setOrder((current) => withEvent(current, code, description));
@@ -136,8 +153,27 @@ export function OrderEntryModule({ currentUser }: OrderEntryModuleProps) {
     if (activeTab === 'Order Top') return <OrderTopTab order={order} onOrderChange={setOrder} />;
     if (activeTab === 'Detail') return <DetailTab order={order} />;
     if (activeTab === 'Parts') return <PartsTab order={order} onOrderChange={setOrder} />;
-    if (activeTab === 'Process') return <ProcessTab order={order} onOrderChange={setOrder} />;
-    if (activeTab === 'Steps') return <StepsTab order={order} />;
+    if (activeTab === 'Process') {
+      return (
+        <ProcessTab
+          order={order}
+          onOrderChange={setOrder}
+          processMasters={effectiveProcessMasters}
+          processRevisions={effectiveProcessRevisions}
+          plantSupportDictionaryEntries={effectiveDictionaries}
+        />
+      );
+    }
+    if (activeTab === 'Steps') {
+      return (
+        <StepsTab
+          order={order}
+          processMasters={effectiveProcessMasters}
+          processRevisions={effectiveProcessRevisions}
+          plantSupportDictionaryEntries={effectiveDictionaries}
+        />
+      );
+    }
 
     return null;
   }

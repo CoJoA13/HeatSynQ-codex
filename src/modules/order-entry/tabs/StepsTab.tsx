@@ -1,12 +1,30 @@
-import { processMasters } from '../../../data/seed';
-import type { Order } from '../../../domain/types';
+import {
+  plantSupportDictionaryEntries as seededPlantSupportDictionaryEntries,
+  processMasters as seededProcessMasters,
+  processRevisions as seededProcessRevisions,
+} from '../../../data/seed';
+import { getActiveProcessRevision } from '../../../domain/processFoundation';
+import type { Order, PlantSupportDictionaryEntry, ProcessMaster, ProcessRevision } from '../../../domain/types';
 
 interface StepsTabProps {
   order: Order;
+  processMasters?: ProcessMaster[];
+  processRevisions?: ProcessRevision[];
+  plantSupportDictionaryEntries?: PlantSupportDictionaryEntry[];
 }
 
-export function StepsTab({ order }: StepsTabProps) {
-  const process = processMasters.find((entry) => entry.id === order.processMasterId);
+function getDictionaryName(entries: PlantSupportDictionaryEntry[], id: string): string {
+  return entries.find((entry) => entry.id === id)?.name ?? id;
+}
+
+export function StepsTab({
+  order,
+  processMasters = seededProcessMasters,
+  processRevisions = seededProcessRevisions,
+  plantSupportDictionaryEntries = seededPlantSupportDictionaryEntries,
+}: StepsTabProps) {
+  const processMaster = processMasters.find((entry) => entry.id === order.processMasterId);
+  const activeRevision = processMaster ? getActiveProcessRevision(processMaster, processRevisions) : undefined;
 
   return (
     <div className="tab-content-stack">
@@ -15,7 +33,7 @@ export function StepsTab({ order }: StepsTabProps) {
         <h2>Steps</h2>
       </div>
 
-      {process ? (
+      {activeRevision ? (
         <table className="data-table">
           <thead>
             <tr>
@@ -27,11 +45,11 @@ export function StepsTab({ order }: StepsTabProps) {
             </tr>
           </thead>
           <tbody>
-            {process.steps.map((step) => (
+            {activeRevision.steps.map((step) => (
               <tr key={step.id}>
                 <td>{step.sequence}</td>
                 <td>{step.name}</td>
-                <td>{step.furnace}</td>
+                <td>{getDictionaryName(plantSupportDictionaryEntries, step.equipmentId)}</td>
                 <td>{step.temperatureF}</td>
                 <td>{step.minutes}</td>
               </tr>

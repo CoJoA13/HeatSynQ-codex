@@ -3,13 +3,28 @@ import { ModuleGate } from '../../components/ModuleGate';
 import {
   customerParts as seededCustomerParts,
   customers,
-  processMasters,
+  plantSupportDictionaryEntries as seededPlantSupportDictionaryEntries,
+  processMasters as seededProcessMasters,
+  processRevisions as seededProcessRevisions,
 } from '../../data/seed';
 import { getPartOrderEntryStatus, validateCustomerPart } from '../../domain/masterData';
-import type { CustomerPart, PartPriceSummary, PartQuoteSummary, User } from '../../domain/types';
+import type {
+  CustomerPart,
+  PartPriceSummary,
+  PartQuoteSummary,
+  PlantSupportDictionaryEntry,
+  ProcessMaster,
+  ProcessRevision,
+  User,
+} from '../../domain/types';
 
 interface PartMaintenanceModuleProps {
   currentUser: User;
+  parts?: CustomerPart[];
+  onPartsChange?: (parts: CustomerPart[]) => void;
+  processMasters?: ProcessMaster[];
+  processRevisions?: ProcessRevision[];
+  plantSupportDictionaryEntries?: PlantSupportDictionaryEntry[];
 }
 
 type PartTextField = Pick<
@@ -42,6 +57,7 @@ function createBlankPart(): CustomerPart {
     partId: '',
     customerId: '',
     processMasterId: '',
+    processRevisionId: '',
     partName: '',
     description: '',
     outgoingPartNumber: '',
@@ -79,8 +95,15 @@ function getCustomerName(customerId: string): string {
   return customers.find((customer) => customer.id === customerId)?.name ?? 'Unassigned customer';
 }
 
-export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProps) {
-  const [parts, setParts] = useState<CustomerPart[]>(cloneParts);
+export function PartMaintenanceModule({
+  currentUser,
+  parts,
+  onPartsChange,
+  processMasters,
+  processRevisions,
+  plantSupportDictionaryEntries,
+}: PartMaintenanceModuleProps) {
+  const [localParts, setLocalParts] = useState<CustomerPart[]>(cloneParts);
   const [selectedPartId, setSelectedPartId] = useState(seededCustomerParts[0]?.id ?? '');
   const [draft, setDraft] = useState<CustomerPart>(() =>
     structuredClone(seededCustomerParts[0] ?? createBlankPart()),
@@ -89,11 +112,16 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
   const [includeInactive, setIncludeInactive] = useState(false);
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
   const [saveSummary, setSaveSummary] = useState('');
+  const effectiveParts = parts ?? localParts;
+  const updateParts = onPartsChange ?? setLocalParts;
+  const effectiveProcessMasters = processMasters ?? seededProcessMasters;
+  const effectiveProcessRevisions = processRevisions ?? seededProcessRevisions;
+  const effectiveDictionaries = plantSupportDictionaryEntries ?? seededPlantSupportDictionaryEntries;
 
   const filteredParts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
 
-    return parts.filter((part) => {
+    return effectiveParts.filter((part) => {
       if (!includeInactive && part.inactive) return false;
       if (!normalizedQuery) return true;
 
@@ -101,9 +129,12 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
         `${part.partId} ${part.partName} ${part.description} ${getCustomerName(part.customerId)}`.toLocaleLowerCase();
       return searchableText.includes(normalizedQuery);
     });
-  }, [includeInactive, parts, searchQuery]);
+  }, [effectiveParts, includeInactive, searchQuery]);
 
-  const orderEntryStatus = useMemo(() => getPartOrderEntryStatus(draft, processMasters), [draft]);
+  const orderEntryStatus = useMemo(
+    () => getPartOrderEntryStatus(draft, effectiveProcessMasters),
+    [draft, effectiveProcessMasters],
+  );
 
   function selectPart(part: CustomerPart) {
     setSelectedPartId(part.id);
@@ -179,7 +210,7 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
   }
 
   function savePart() {
-    const result = validateCustomerPart(draft, parts, processMasters);
+    const result = validateCustomerPart(draft, effectiveParts, effectiveProcessMasters);
     const messages = [...result.errors, ...result.warnings];
 
     if (!result.valid) {
@@ -189,13 +220,14 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
     }
 
     const savedPart = structuredClone(draft);
-    setParts((currentParts) => {
-      const existingPartId = selectedPartId || savedPart.id;
-      const existingIndex = currentParts.findIndex((part) => part.id === existingPartId);
-      if (existingIndex === -1) return [...currentParts, savedPart];
+    const existingPartId = selectedPartId || savedPart.id;
+    const existingIndex = effectiveParts.findIndex((part) => part.id === existingPartId);
+    const nextParts =
+      existingIndex === -1
+        ? [...effectiveParts, savedPart]
+        : effectiveParts.map((part, index) => (index === existingIndex ? savedPart : part));
 
-      return currentParts.map((part, index) => (index === existingIndex ? savedPart : part));
-    });
+    updateParts(nextParts);
     setSelectedPartId(savedPart.id);
     setValidationMessages(result.warnings);
     setSaveSummary('Part saved.');
@@ -354,9 +386,9 @@ export function PartMaintenanceModule({ currentUser }: PartMaintenanceModuleProp
                     onChange={(event) => updateDraftField('processMasterId', event.target.value)}
                   >
                     <option value="">Unassigned</option>
-                    {processMasters.map((processMaster) => (
+                    {effectiveProcessMasters.map((processMaster) => (
                       <option key={processMaster.id} value={processMaster.id}>
-                        {processMaster.id} - {processMaster.processCode}
+                        {processMaster.id} - {processMaster.name}
                       </option>
                     ))}
                   </select>
