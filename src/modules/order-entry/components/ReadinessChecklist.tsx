@@ -12,6 +12,7 @@ const checklistItems: ChecklistItem[] = [
   { key: 'container', label: 'At least one container', tab: 'Parts' },
   { key: 'part', label: 'At least one part', tab: 'Parts' },
   { key: 'quantityOrWeight', label: 'Quantity or weight', tab: 'Parts' },
+  { key: 'invalidWeight', label: 'Valid container net weight', tab: 'Parts' },
   { key: 'processMaster', label: 'Existing process master', tab: 'Process' },
   { key: 'clearance', label: 'Order Entry permission', tab: 'Order Top' },
 ];

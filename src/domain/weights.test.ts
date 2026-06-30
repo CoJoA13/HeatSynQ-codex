@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateContainerNetWeight, calculateOrderWeights } from './weights';
+import { calculateContainerNetWeight, calculateOrderWeights, hasNegativeContainerNetWeight } from './weights';
 import type { Order } from './types';
 
 const baseOrder: Order = {
@@ -36,6 +36,11 @@ describe('calculateContainerNetWeight', () => {
 
   it('does not allow negative net weight', () => {
     expect(calculateContainerNetWeight({ grossWeight: 20, tareWeight: 30 })).toBe(0);
+  });
+
+  it('detects negative net weight before clamping display totals', () => {
+    expect(hasNegativeContainerNetWeight({ grossWeight: 20, tareWeight: 30 })).toBe(true);
+    expect(hasNegativeContainerNetWeight({ grossWeight: 30, tareWeight: 20 })).toBe(false);
   });
 });
 

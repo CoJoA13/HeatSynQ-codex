@@ -102,6 +102,47 @@ describe('OrderEntryModule', () => {
     expect(screen.getByRole('button', { name: /release order/i })).toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('surfaces invalid negative net weight and keeps release blocked', async () => {
+    const user = userEvent.setup();
+    render(<OrderEntryModule currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('tab', { name: 'Parts' }));
+    await user.clear(screen.getByLabelText('Container 1 gross weight'));
+    await user.type(screen.getByLabelText('Container 1 gross weight'), '20');
+    await user.clear(screen.getByLabelText('Container 1 tare weight'));
+    await user.type(screen.getByLabelText('Container 1 tare weight'), '30');
+
+    expect(screen.getByText('Net weight cannot be negative.')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: /release order/i }));
+
+    expect(screen.getByText(/Release blocked\. Missing: Valid container net weight/i)).toBeVisible();
+    expect(screen.getByRole('button', { name: /release order/i })).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('records a release event when a ready order is released', async () => {
+    const user = userEvent.setup();
+    render(<OrderEntryModule currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('button', { name: /release order/i }));
+
+    expect(screen.getByText(/Released order 71951/i)).toBeVisible();
+  });
+
+  it('restores the last saved working order when canceling edits', async () => {
+    const user = userEvent.setup();
+    render(<OrderEntryModule currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('button', { name: /new order/i }));
+    await user.selectOptions(screen.getByLabelText('Customer'), 'cust-amz');
+    await user.click(screen.getByRole('button', { name: /save order draft/i }));
+    await user.selectOptions(screen.getByLabelText('Customer'), 'cust-gfmco');
+    await user.click(screen.getByRole('button', { name: /cancel edits/i }));
+
+    expect(screen.getByText(/Order Draft \/ AMZ Manufacturing Corporation/i)).toBeVisible();
+    expect(screen.queryByText(/Order 71951/i)).not.toBeInTheDocument();
+  });
+
   it('uses readiness items as shortcuts to the related tabs', async () => {
     const user = userEvent.setup();
     render(<OrderEntryModule currentUser={users[0]} />);

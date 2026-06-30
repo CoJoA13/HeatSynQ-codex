@@ -19,14 +19,18 @@ interface OrderEntryModuleProps {
 }
 
 function cloneSampleOrder(): Order {
+  return cloneOrder(sampleOrder);
+}
+
+function cloneOrder(order: Order): Order {
   return {
-    ...sampleOrder,
-    containers: sampleOrder.containers.map((container) => ({ ...container })),
-    parts: sampleOrder.parts.map((part) => ({ ...part })),
-    events: sampleOrder.events.map((event) => ({ ...event })),
-    orderNotes: sampleOrder.orderNotes.map((note) => ({ ...note })),
-    customerNotes: sampleOrder.customerNotes.map((note) => ({ ...note })),
-    documents: sampleOrder.documents.map((document) => ({ ...document })),
+    ...order,
+    containers: order.containers.map((container) => ({ ...container })),
+    parts: order.parts.map((part) => ({ ...part })),
+    events: order.events.map((event) => ({ ...event })),
+    orderNotes: order.orderNotes.map((note) => ({ ...note })),
+    customerNotes: order.customerNotes.map((note) => ({ ...note })),
+    documents: order.documents.map((document) => ({ ...document })),
   };
 }
 
@@ -63,30 +67,69 @@ function createEventId(): string {
   return crypto.randomUUID();
 }
 
+function createOrderEvent(code: string, description: string) {
+  return {
+    id: createEventId(),
+    date: new Date().toLocaleString(),
+    code,
+    description,
+  };
+}
+
+function withEvent(order: Order, code: string, description: string): Order {
+  return {
+    ...order,
+    events: [createOrderEvent(code, description), ...order.events],
+  };
+}
+
 function tabPanelId(tab: OrderEntryTab): string {
   return `order-panel-${tab.toLowerCase().replace(/\s+/g, '-')}`;
 }
 
 export function OrderEntryModule({ currentUser }: OrderEntryModuleProps) {
   const [order, setOrder] = useState<Order>(() => cloneSampleOrder());
+  const [savedOrder, setSavedOrder] = useState<Order>(() => cloneSampleOrder());
   const [activeTab, setActiveTab] = useState<OrderEntryTab>('Order Top');
   const readiness = validateOrderReadiness(order, currentUser);
   const customer = useMemo(() => customers.find((entry) => entry.id === order.customerId), [order.customerId]);
   const customerName = customer?.name ?? 'Unassigned';
 
   function addEvent(code: string, description: string) {
-    setOrder((current) => ({
-      ...current,
-      events: [
+    setOrder((current) => withEvent(current, code, description));
+  }
+
+  function readinessDescription() {
+    return `Release blocked. Missing: ${readiness.missing.map((item) => item.label).join(', ')}`;
+  }
+
+  function saveOrder() {
+    setOrder((current) => {
+      const nextOrder = withEvent(current, 'Saved', 'Order saved from Order Entry');
+      setSavedOrder(cloneOrder(nextOrder));
+      return nextOrder;
+    });
+  }
+
+  function releaseOrder() {
+    if (!readiness.ready) {
+      addEvent('Blocked Release', readinessDescription());
+      return;
+    }
+
+    setOrder((current) => {
+      const releasedOrder = withEvent(
         {
-          id: createEventId(),
-          date: new Date().toLocaleString(),
-          code,
-          description,
+          ...current,
+          status: 'Released',
+          receivingStatus: 'Order Released',
         },
-        ...current.events,
-      ],
-    }));
+        'Order Released',
+        `Released order ${current.id}`,
+      );
+      setSavedOrder(cloneOrder(releasedOrder));
+      return releasedOrder;
+    });
   }
 
   function renderActiveTab() {
@@ -106,27 +149,34 @@ export function OrderEntryModule({ currentUser }: OrderEntryModuleProps) {
           orderId={order.id}
           readyToRelease={readiness.ready}
           onNew={() => {
-            setOrder(createDraftOrder());
+            const draftOrder = createDraftOrder();
+            setOrder(draftOrder);
+            setSavedOrder(cloneOrder(draftOrder));
             setActiveTab('Order Top');
           }}
           onSearch={() => {
-            setOrder(cloneSampleOrder());
+            const sample = cloneSampleOrder();
+            setOrder(sample);
+            setSavedOrder(cloneOrder(sample));
             setActiveTab('Order Top');
           }}
           onCheck={() => {
             addEvent(
               readiness.ready ? 'Ready Check' : 'Blocked Check',
-              readiness.ready
-                ? 'Order is ready to release'
-                : `Release blocked. Missing: ${readiness.missing.map((item) => item.label).join(', ')}`,
+              readiness.ready ? 'Order is ready to release' : readinessDescription(),
             );
           }}
-          onSave={() => addEvent('Saved', 'Order saved from Order Entry')}
+          onRelease={releaseOrder}
+          onSave={saveOrder}
           onCancel={() => {
-            setOrder(cloneSampleOrder());
+            setOrder(cloneOrder(savedOrder));
             setActiveTab('Order Top');
           }}
-          onErase={() => setOrder(createDraftOrder())}
+          onErase={() => {
+            const draftOrder = createDraftOrder();
+            setOrder(draftOrder);
+            setSavedOrder(cloneOrder(draftOrder));
+          }}
           onAddNote={() => addEvent('Order Note', 'Order note action opened')}
           onAddComment={() => addEvent('Comments', 'Comments action opened')}
           onPrint={() => addEvent('Ord Printed', `Traveler printed for order ${order.id}`)}

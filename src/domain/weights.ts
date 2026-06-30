@@ -21,6 +21,10 @@ export function calculateContainerNetWeight(input: WeightInput): number {
   return Math.max(0, input.grossWeight - input.tareWeight);
 }
 
+export function hasNegativeContainerNetWeight(input: WeightInput): boolean {
+  return input.grossWeight - input.tareWeight < 0;
+}
+
 function valuesMatch(left: number, right: number): boolean {
   return Math.abs(left - right) <= WEIGHT_MATCH_TOLERANCE;
 }

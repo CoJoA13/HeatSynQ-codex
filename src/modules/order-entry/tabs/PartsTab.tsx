@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { calculateContainerNetWeight, calculateOrderWeights } from '../../../domain/weights';
+import { calculateContainerNetWeight, calculateOrderWeights, hasNegativeContainerNetWeight } from '../../../domain/weights';
 import type { Container, Order, PartLine } from '../../../domain/types';
 
 interface PartsTabProps {
@@ -156,6 +156,7 @@ export function PartsTab({ order, onOrderChange }: PartsTabProps) {
               <tbody>
                 {order.containers.map((container, index) => {
                   const rowNumber = index + 1;
+                  const hasNegativeNetWeight = hasNegativeContainerNetWeight(container);
 
                   return (
                     <tr key={container.id}>
@@ -200,7 +201,14 @@ export function PartsTab({ order, onOrderChange }: PartsTabProps) {
                           onValueChange={(value) => updateContainer(container.id, { tareWeight: value })}
                         />
                       </td>
-                      <td className="number-cell">Net weight {formatWeight(calculateContainerNetWeight(container))}</td>
+                      <td className="number-cell">
+                        <span>Net weight {formatWeight(calculateContainerNetWeight(container))}</span>
+                        {hasNegativeNetWeight ? (
+                          <span className="field-error" role="alert">
+                            Net weight cannot be negative.
+                          </span>
+                        ) : null}
+                      </td>
                       <td>
                         <input
                           aria-label={`Container ${rowNumber} container ID`}

@@ -1,8 +1,15 @@
 import { hasModulePermission } from './permissions';
-import { calculateOrderWeights } from './weights';
+import { calculateOrderWeights, hasNegativeContainerNetWeight } from './weights';
 import type { Order, User } from './types';
 
-export type ReadinessKey = 'customer' | 'container' | 'part' | 'quantityOrWeight' | 'processMaster' | 'clearance';
+export type ReadinessKey =
+  | 'customer'
+  | 'container'
+  | 'part'
+  | 'quantityOrWeight'
+  | 'invalidWeight'
+  | 'processMaster'
+  | 'clearance';
 export type OrderEntryTab = 'Order Top' | 'Detail' | 'Parts' | 'Process' | 'Steps';
 
 export interface MissingReadinessItem {
@@ -29,6 +36,9 @@ export function validateOrderReadiness(order: Order, user: User): ReadinessResul
   if (order.parts.length === 0) missing.push({ key: 'part', label: 'At least one part', tab: 'Parts' });
   if (totals.containerQuantity <= 0 && totals.containerNetWeight <= 0 && totals.partQuantity <= 0 && totals.partWeight <= 0) {
     missing.push({ key: 'quantityOrWeight', label: 'Quantity or weight', tab: 'Parts' });
+  }
+  if (order.containers.some(hasNegativeContainerNetWeight)) {
+    missing.push({ key: 'invalidWeight', label: 'Valid container net weight', tab: 'Parts' });
   }
   if (!hasText(order.processMasterId)) {
     missing.push({ key: 'processMaster', label: 'Existing process master', tab: 'Process' });

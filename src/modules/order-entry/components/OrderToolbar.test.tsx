@@ -17,6 +17,7 @@ describe('OrderToolbar', () => {
         onNew={noop}
         onSearch={noop}
         onCheck={noop}
+        onRelease={noop}
         onSave={noop}
         onCancel={noop}
         onErase={noop}

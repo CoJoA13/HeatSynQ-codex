@@ -85,6 +85,19 @@ describe('validateOrderReadiness', () => {
     expect(result.missing).toContainEqual({ key: 'quantityOrWeight', label: 'Quantity or weight', tab: 'Parts' });
   });
 
+  it('reports invalid negative net weight with the Parts tab', () => {
+    const result = validateOrderReadiness(
+      {
+        ...readyOrder,
+        containers: [{ ...readyOrder.containers[0], grossWeight: 20, tareWeight: 30 }],
+      },
+      user,
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.missing).toContainEqual({ key: 'invalidWeight', label: 'Valid container net weight', tab: 'Parts' });
+  });
+
   it('reports missing process master with the Process tab', () => {
     const result = validateOrderReadiness({ ...readyOrder, processMasterId: '' }, user);
     expect(result.ready).toBe(false);

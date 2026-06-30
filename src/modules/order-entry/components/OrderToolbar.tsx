@@ -6,6 +6,7 @@ interface OrderToolbarProps {
   onNew: () => void;
   onSearch: () => void;
   onCheck: () => void;
+  onRelease: () => void;
   onSave: () => void;
   onCancel: () => void;
   onErase: () => void;
@@ -20,6 +21,7 @@ export function OrderToolbar({
   onNew,
   onSearch,
   onCheck,
+  onRelease,
   onSave,
   onCancel,
   onErase,
@@ -72,7 +74,7 @@ export function OrderToolbar({
           type="button"
           className="toolbar-button toolbar-button-release"
           aria-disabled={!readyToRelease}
-          onClick={onCheck}
+          onClick={onRelease}
         >
           <Send size={16} aria-hidden="true" />
           <span>Release Order</span>

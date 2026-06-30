@@ -525,6 +525,15 @@ textarea {
   white-space: nowrap;
 }
 
+.field-error {
+  display: block;
+  margin-top: 3px;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: normal;
+}
+
 .checkbox-cell {
   text-align: center;
 }
