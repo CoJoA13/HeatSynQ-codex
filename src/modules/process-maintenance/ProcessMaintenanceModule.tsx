@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ModuleGate } from '../../components/ModuleGate';
 import {
   filterActiveDictionaryEntries,
@@ -67,6 +67,7 @@ export function ProcessMaintenanceModule({
   processRevisions,
   plantSupportDictionaryEntries,
   customerParts,
+  onProcessMastersChange,
   onProcessRevisionsChange,
 }: ProcessMaintenanceModuleProps) {
   const firstProcessMaster = processMasters[0];
@@ -75,8 +76,8 @@ export function ProcessMaintenanceModule({
     firstProcessMaster ? createEditableDraft(firstProcessMaster, processRevisions) : undefined,
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [validationMessages, setValidationMessages] = useState<string[]>([]);
   const [saveSummary, setSaveSummary] = useState('');
+  const [hasUnsavedDraftEdits, setHasUnsavedDraftEdits] = useState(false);
 
   const selectedProcessMaster =
     processMasters.find((processMaster) => processMaster.id === selectedProcessMasterId) ?? firstProcessMaster;
@@ -93,10 +94,47 @@ export function ProcessMaintenanceModule({
   const draftReadiness = draftRevision
     ? getProcessRevisionReadiness(draftRevision, plantSupportDictionaryEntries)
     : undefined;
-  const readinessMessages = validationMessages.length > 0 ? validationMessages : draftReadiness?.blockers ?? [];
+  const readinessMessages = draftReadiness?.blockers ?? [];
   const assignedPartCount = selectedProcessMaster
     ? customerParts.filter((part) => part.processMasterId === selectedProcessMaster.id).length
     : 0;
+
+  useEffect(() => {
+    if (processMasters.length === 0) {
+      if (selectedProcessMasterId) setSelectedProcessMasterId('');
+      if (draftRevision) setDraftRevision(undefined);
+      if (hasUnsavedDraftEdits) setHasUnsavedDraftEdits(false);
+      return;
+    }
+
+    const nextSelectedProcessMaster =
+      processMasters.find((processMaster) => processMaster.id === selectedProcessMasterId) ?? processMasters[0];
+
+    if (nextSelectedProcessMaster.id !== selectedProcessMasterId) {
+      setSelectedProcessMasterId(nextSelectedProcessMaster.id);
+      setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
+      setHasUnsavedDraftEdits(false);
+      setSaveSummary('');
+      return;
+    }
+
+    if (!draftRevision || draftRevision.processMasterId !== nextSelectedProcessMaster.id) {
+      setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
+      setHasUnsavedDraftEdits(false);
+      setSaveSummary('');
+      return;
+    }
+
+    if (
+      !hasUnsavedDraftEdits &&
+      nextSelectedProcessMaster.draftRevisionId &&
+      draftRevision.id !== nextSelectedProcessMaster.draftRevisionId
+    ) {
+      setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
+      setHasUnsavedDraftEdits(false);
+      setSaveSummary('');
+    }
+  }, [draftRevision, hasUnsavedDraftEdits, processMasters, processRevisions, selectedProcessMasterId]);
 
   const activeProcessCodes = useMemo(
     () => filterActiveDictionaryEntries(plantSupportDictionaryEntries, 'Process Code'),
@@ -173,13 +211,13 @@ export function ProcessMaintenanceModule({
 
     setSelectedProcessMasterId(processMaster.id);
     setDraftRevision(nextDraftRevision);
-    setValidationMessages(getProcessRevisionReadiness(nextDraftRevision, plantSupportDictionaryEntries).blockers);
+    setHasUnsavedDraftEdits(false);
     setSaveSummary('');
   }
 
   function updateDraft(nextDraftRevision: ProcessRevision) {
     setDraftRevision(nextDraftRevision);
-    setValidationMessages(getProcessRevisionReadiness(nextDraftRevision, plantSupportDictionaryEntries).blockers);
+    setHasUnsavedDraftEdits(true);
     setSaveSummary('');
   }
 
@@ -194,8 +232,19 @@ export function ProcessMaintenanceModule({
         : processRevisions.map((revision, index) => (index === existingRevisionIndex ? savedDraft : revision));
 
     onProcessRevisionsChange(nextRevisions);
+
+    if (selectedProcessMaster && selectedProcessMaster.draftRevisionId !== savedDraft.id) {
+      onProcessMastersChange(
+        processMasters.map((processMaster) =>
+          processMaster.id === selectedProcessMaster.id
+            ? { ...processMaster, draftRevisionId: savedDraft.id }
+            : processMaster,
+        ),
+      );
+    }
+
     setDraftRevision(savedDraft);
-    setValidationMessages(getProcessRevisionReadiness(savedDraft, plantSupportDictionaryEntries).blockers);
+    setHasUnsavedDraftEdits(false);
     setSaveSummary('Draft saved.');
   }
 
@@ -356,7 +405,11 @@ export function ProcessMaintenanceModule({
           </aside>
 
           <section className="master-detail-panel" aria-label="Process recipe detail">
-            {saveSummary && <p className="save-summary">{saveSummary}</p>}
+            {saveSummary && (
+              <p className="save-summary" role="status">
+                {saveSummary}
+              </p>
+            )}
 
             {selectedProcessMaster && (
               <section className="master-section" aria-labelledby="process-overview-heading">

@@ -77,8 +77,87 @@ describe('ProcessMaintenanceModule', () => {
     await user.click(screen.getByRole('button', { name: 'Save Draft' }));
 
     expect(onProcessRevisionsChange).toHaveBeenCalled();
+    expect(screen.getByRole('status')).toHaveTextContent('Draft saved.');
     expect(screen.getByText('Draft saved.')).toBeVisible();
     expect(screen.getByText('Specification is required before promotion.')).toBeVisible();
+  });
+
+  it('links a newly saved draft to a process master without an existing draft', async () => {
+    const user = userEvent.setup();
+    const { onProcessMastersChange, onProcessRevisionsChange } = renderProcessMaintenance();
+
+    await user.click(screen.getByRole('button', { name: /12-496783-HT 8620 Steel Carburize Route/i }));
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }));
+
+    const savedRevisions = onProcessRevisionsChange.mock.calls[0]?.[0] as typeof processRevisions;
+    const savedDraft = savedRevisions.find(
+      (revision) => revision.processMasterId === '12-496783-HT' && revision.status === 'Draft',
+    );
+
+    expect(savedDraft).toBeDefined();
+    if (!savedDraft) throw new Error('Expected saved draft');
+    expect(onProcessMastersChange).toHaveBeenCalled();
+    expect(onProcessMastersChange.mock.calls[0][0]).toContainEqual(
+      expect.objectContaining({
+        id: '12-496783-HT',
+        draftRevisionId: savedDraft.id,
+      }),
+    );
+  });
+
+  it('syncs the selected local draft when parent process props point to a new draft revision', async () => {
+    const user = userEvent.setup();
+    const onProcessMastersChange = vi.fn();
+    const onProcessRevisionsChange = vi.fn();
+    const onPlantSupportDictionaryEntriesChange = vi.fn();
+    const onCustomerPartsChange = vi.fn();
+    const rendered = render(
+      <ProcessMaintenanceModule
+        currentUser={users[0]}
+        processMasters={structuredClone(processMasters)}
+        processRevisions={structuredClone(processRevisions)}
+        plantSupportDictionaryEntries={structuredClone(plantSupportDictionaryEntries)}
+        customerParts={structuredClone(customerParts)}
+        onProcessMastersChange={onProcessMastersChange}
+        onProcessRevisionsChange={onProcessRevisionsChange}
+        onPlantSupportDictionaryEntriesChange={onPlantSupportDictionaryEntriesChange}
+        onCustomerPartsChange={onCustomerPartsChange}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /12-496783-HT 8620 Steel Carburize Route/i }));
+    expect(screen.getByText('Rev 5 Draft')).toBeInTheDocument();
+
+    const parentDraft = {
+      ...structuredClone(processRevisions.find((revision) => revision.id === 'proc-rev-carburize-4')!),
+      id: 'proc-rev-carburize-parent-draft',
+      revision: 8,
+      status: 'Draft' as const,
+      effectiveDate: '',
+      specification: 'Parent synchronized spec',
+    };
+    const parentMasters = processMasters.map((processMaster) =>
+      processMaster.id === '12-496783-HT'
+        ? { ...processMaster, draftRevisionId: parentDraft.id }
+        : processMaster,
+    );
+
+    rendered.rerender(
+      <ProcessMaintenanceModule
+        currentUser={users[0]}
+        processMasters={parentMasters}
+        processRevisions={[...processRevisions, parentDraft]}
+        plantSupportDictionaryEntries={plantSupportDictionaryEntries}
+        customerParts={customerParts}
+        onProcessMastersChange={onProcessMastersChange}
+        onProcessRevisionsChange={onProcessRevisionsChange}
+        onPlantSupportDictionaryEntriesChange={onPlantSupportDictionaryEntriesChange}
+        onCustomerPartsChange={onCustomerPartsChange}
+      />,
+    );
+
+    expect(await screen.findByText('Rev 8 Draft')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Parent synchronized spec')).toBeInTheDocument();
   });
 
   it('adds, duplicates, moves, and removes process steps in the draft', async () => {
