@@ -104,10 +104,16 @@ export function ProcessMaintenanceModule({
   onProcessRevisionsChange,
   onPlantSupportDictionaryEntriesChange,
 }: ProcessMaintenanceModuleProps) {
-  const firstProcessMaster = processMasters[0];
+  const [processMasterEntries, setProcessMasterEntries] = useState<ProcessMaster[]>(() =>
+    structuredClone(processMasters),
+  );
+  const [processRevisionEntries, setProcessRevisionEntries] = useState<ProcessRevision[]>(() =>
+    structuredClone(processRevisions),
+  );
+  const firstProcessMaster = processMasterEntries[0];
   const [selectedProcessMasterId, setSelectedProcessMasterId] = useState(firstProcessMaster?.id ?? '');
   const [draftRevision, setDraftRevision] = useState<ProcessRevision | undefined>(() =>
-    firstProcessMaster ? createEditableDraft(firstProcessMaster, processRevisions) : undefined,
+    firstProcessMaster ? createEditableDraft(firstProcessMaster, processRevisionEntries) : undefined,
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [saveSummary, setSaveSummary] = useState('');
@@ -120,9 +126,9 @@ export function ProcessMaintenanceModule({
   const [dictionaryDraft, setDictionaryDraft] = useState<DictionaryDraft>(() => createEmptyDictionaryDraft());
 
   const selectedProcessMaster =
-    processMasters.find((processMaster) => processMaster.id === selectedProcessMasterId) ?? firstProcessMaster;
+    processMasterEntries.find((processMaster) => processMaster.id === selectedProcessMasterId) ?? firstProcessMaster;
   const activeRevision = selectedProcessMaster
-    ? getActiveProcessRevision(selectedProcessMaster, processRevisions)
+    ? getActiveProcessRevision(selectedProcessMaster, processRevisionEntries)
     : undefined;
   const activeSummary = selectedProcessMaster
     ? getProcessDisplaySummary(selectedProcessMaster, activeRevision, dictionaryEntries)
@@ -138,11 +144,19 @@ export function ProcessMaintenanceModule({
     : 0;
 
   useEffect(() => {
+    setProcessMasterEntries(structuredClone(processMasters));
+  }, [processMasters]);
+
+  useEffect(() => {
+    setProcessRevisionEntries(structuredClone(processRevisions));
+  }, [processRevisions]);
+
+  useEffect(() => {
     setDictionaryEntries(structuredClone(plantSupportDictionaryEntries));
   }, [plantSupportDictionaryEntries]);
 
   useEffect(() => {
-    if (processMasters.length === 0) {
+    if (processMasterEntries.length === 0) {
       if (selectedProcessMasterId) setSelectedProcessMasterId('');
       if (draftRevision) setDraftRevision(undefined);
       if (hasUnsavedDraftEdits) setHasUnsavedDraftEdits(false);
@@ -151,11 +165,12 @@ export function ProcessMaintenanceModule({
     }
 
     const nextSelectedProcessMaster =
-      processMasters.find((processMaster) => processMaster.id === selectedProcessMasterId) ?? processMasters[0];
+      processMasterEntries.find((processMaster) => processMaster.id === selectedProcessMasterId) ??
+      processMasterEntries[0];
 
     if (nextSelectedProcessMaster.id !== selectedProcessMasterId) {
       setSelectedProcessMasterId(nextSelectedProcessMaster.id);
-      setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
+      setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisionEntries));
       setHasUnsavedDraftEdits(false);
       setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
       setSaveSummary('');
@@ -163,7 +178,7 @@ export function ProcessMaintenanceModule({
     }
 
     if (!draftRevision || draftRevision.processMasterId !== nextSelectedProcessMaster.id) {
-      setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
+      setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisionEntries));
       setHasUnsavedDraftEdits(false);
       setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
       setSaveSummary('');
@@ -174,7 +189,7 @@ export function ProcessMaintenanceModule({
     const parentClearedDraftPointer = parentDraftPointerChanged && nextSelectedProcessMaster.draftRevisionId === '';
 
     if (parentDraftPointerChanged && (!hasUnsavedDraftEdits || parentClearedDraftPointer)) {
-      setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
+      setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisionEntries));
       setHasUnsavedDraftEdits(false);
       setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
       setSaveSummary('');
@@ -182,8 +197,8 @@ export function ProcessMaintenanceModule({
   }, [
     draftRevision,
     hasUnsavedDraftEdits,
-    processMasters,
-    processRevisions,
+    processMasterEntries,
+    processRevisionEntries,
     selectedProcessMasterId,
     syncedDraftRevisionId,
   ]);
@@ -220,11 +235,11 @@ export function ProcessMaintenanceModule({
   const filteredProcessMasters = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
 
-    if (!normalizedQuery) return processMasters;
+    if (!normalizedQuery) return processMasterEntries;
 
-    return processMasters.filter((processMaster) => {
-      const processActiveRevision = getActiveProcessRevision(processMaster, processRevisions);
-      const processDraftRevision = getDraftProcessRevision(processMaster, processRevisions);
+    return processMasterEntries.filter((processMaster) => {
+      const processActiveRevision = getActiveProcessRevision(processMaster, processRevisionEntries);
+      const processDraftRevision = getDraftProcessRevision(processMaster, processRevisionEntries);
       const processActiveSummary = getProcessDisplaySummary(
         processMaster,
         processActiveRevision,
@@ -248,7 +263,7 @@ export function ProcessMaintenanceModule({
 
       return searchableText.includes(normalizedQuery);
     });
-  }, [dictionaryEntries, processMasters, processRevisions, searchQuery]);
+  }, [dictionaryEntries, processMasterEntries, processRevisionEntries, searchQuery]);
 
   function renderDictionaryOptions(entries: PlantSupportDictionaryEntry[]) {
     return entries.map((entry) => (
@@ -259,7 +274,7 @@ export function ProcessMaintenanceModule({
   }
 
   function selectProcess(processMaster: ProcessMaster) {
-    const nextDraftRevision = createEditableDraft(processMaster, processRevisions);
+    const nextDraftRevision = createEditableDraft(processMaster, processRevisionEntries);
 
     setSelectedProcessMasterId(processMaster.id);
     setDraftRevision(nextDraftRevision);
@@ -278,22 +293,24 @@ export function ProcessMaintenanceModule({
     if (!draftRevision) return;
 
     const savedDraft = structuredClone(draftRevision);
-    const existingRevisionIndex = processRevisions.findIndex((revision) => revision.id === savedDraft.id);
+    const existingRevisionIndex = processRevisionEntries.findIndex((revision) => revision.id === savedDraft.id);
     const nextRevisions =
       existingRevisionIndex === -1
-        ? [...processRevisions, savedDraft]
-        : processRevisions.map((revision, index) => (index === existingRevisionIndex ? savedDraft : revision));
+        ? [...processRevisionEntries, savedDraft]
+        : processRevisionEntries.map((revision, index) => (index === existingRevisionIndex ? savedDraft : revision));
 
+    setProcessRevisionEntries(nextRevisions);
     onProcessRevisionsChange(nextRevisions);
 
     if (selectedProcessMaster && selectedProcessMaster.draftRevisionId !== savedDraft.id) {
-      onProcessMastersChange(
-        processMasters.map((processMaster) =>
-          processMaster.id === selectedProcessMaster.id
-            ? { ...processMaster, draftRevisionId: savedDraft.id }
-            : processMaster,
-        ),
+      const nextProcessMasters = processMasterEntries.map((processMaster) =>
+        processMaster.id === selectedProcessMaster.id
+          ? { ...processMaster, draftRevisionId: savedDraft.id }
+          : processMaster,
       );
+
+      setProcessMasterEntries(nextProcessMasters);
+      onProcessMastersChange(nextProcessMasters);
     }
 
     setDraftRevision(savedDraft);
@@ -304,7 +321,7 @@ export function ProcessMaintenanceModule({
   function createNewDraftRevision() {
     if (!selectedProcessMaster) return;
 
-    const nextDraftRevision = createEditableDraft(selectedProcessMaster, processRevisions);
+    const nextDraftRevision = createEditableDraft(selectedProcessMaster, processRevisionEntries);
 
     setDraftRevision(nextDraftRevision);
     setHasUnsavedDraftEdits(true);
@@ -342,11 +359,13 @@ export function ProcessMaintenanceModule({
   function promoteDraft() {
     if (!selectedProcessMaster || !draftRevision) return;
 
-    const existingRevisionIndex = processRevisions.findIndex((revision) => revision.id === draftRevision.id);
+    const existingRevisionIndex = processRevisionEntries.findIndex((revision) => revision.id === draftRevision.id);
     const revisionsWithDraft =
       existingRevisionIndex === -1
-        ? [...processRevisions, draftRevision]
-        : processRevisions.map((revision, index) => (index === existingRevisionIndex ? draftRevision : revision));
+        ? [...processRevisionEntries, draftRevision]
+        : processRevisionEntries.map((revision, index) =>
+            index === existingRevisionIndex ? draftRevision : revision,
+          );
     const promotion = promoteProcessDraftRevision(
       selectedProcessMaster,
       revisionsWithDraft,
@@ -359,15 +378,17 @@ export function ProcessMaintenanceModule({
       return;
     }
 
-    onProcessMastersChange(
-      processMasters.map((processMaster) =>
-        processMaster.id === selectedProcessMaster.id ? promotion.processMaster : processMaster,
-      ),
+    const nextProcessMasters = processMasterEntries.map((processMaster) =>
+      processMaster.id === selectedProcessMaster.id ? promotion.processMaster : processMaster,
     );
+
+    setProcessMasterEntries(nextProcessMasters);
+    setProcessRevisionEntries(promotion.revisions);
+    onProcessMastersChange(nextProcessMasters);
     onProcessRevisionsChange(promotion.revisions);
-    setDraftRevision({ ...draftRevision, status: 'Active' });
+    setDraftRevision(createEditableDraft(promotion.processMaster, promotion.revisions));
     setHasUnsavedDraftEdits(false);
-    setSyncedDraftRevisionId(selectedProcessMaster.draftRevisionId);
+    setSyncedDraftRevisionId(promotion.processMaster.draftRevisionId);
     setSaveSummary('Draft promoted to active revision.');
   }
 

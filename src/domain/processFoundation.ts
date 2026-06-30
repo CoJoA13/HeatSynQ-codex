@@ -216,6 +216,22 @@ export function promoteProcessDraftRevision(
     return { processMaster, revisions, errors: ['Draft revision was not found.'] };
   }
 
+  if (draftRevision.status !== 'Draft') {
+    return { processMaster, revisions, errors: ['Only draft revisions can be promoted.'] };
+  }
+
+  if (draftRevision.processMasterId !== processMaster.id) {
+    return { processMaster, revisions, errors: ['Draft revision does not belong to the selected process master.'] };
+  }
+
+  if (!isBlank(processMaster.draftRevisionId) && draftRevision.id !== processMaster.draftRevisionId) {
+    return {
+      processMaster,
+      revisions,
+      errors: ["Draft revision is not the selected process master's current draft."],
+    };
+  }
+
   const validation = validateProcessRevisionForPromotion(draftRevision, dictionaries);
 
   if (!validation.valid) {

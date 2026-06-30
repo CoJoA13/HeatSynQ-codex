@@ -303,9 +303,24 @@ describe('ProcessMaintenanceModule', () => {
 
     expect(onPlantSupportDictionaryEntriesChange).toHaveBeenCalled();
     expect(screen.getByText('Furnace 9')).toBeInTheDocument();
+    const addCalls = onPlantSupportDictionaryEntriesChange.mock.calls;
+    const addedEntries = addCalls[addCalls.length - 1][0] as typeof plantSupportDictionaryEntries;
+    expect(addedEntries).toContainEqual(
+      expect.objectContaining({
+        kind: 'Equipment',
+        code: 'FURN-9',
+        name: 'Furnace 9',
+        active: true,
+      }),
+    );
 
     await user.click(screen.getByRole('button', { name: 'Inactivate Furnace 9' }));
 
+    const inactivateCalls = onPlantSupportDictionaryEntriesChange.mock.calls;
+    const inactivatedEntries = inactivateCalls[inactivateCalls.length - 1][0] as typeof plantSupportDictionaryEntries;
+    expect(inactivatedEntries.find((entry) => entry.name === 'Furnace 9')).toMatchObject({
+      active: false,
+    });
     expect(screen.getByText('Inactive')).toBeInTheDocument();
   });
 
@@ -321,6 +336,34 @@ describe('ProcessMaintenanceModule', () => {
 
     expect(onProcessMastersChange).toHaveBeenCalled();
     expect(onProcessRevisionsChange).toHaveBeenCalled();
+    const promotedMasters = onProcessMastersChange.mock.calls[0][0] as typeof processMasters;
+    const promotedMaster = promotedMasters.find((processMaster) => processMaster.id === '12-496783-HT');
+    expect(promotedMaster).toBeDefined();
+    if (!promotedMaster) throw new Error('Expected promoted process master');
+    expect(promotedMaster.draftRevisionId).toBe('');
+    expect(promotedMaster.activeRevisionId).not.toBe('proc-rev-carburize-4');
+
+    const promotedDraftId = promotedMaster.activeRevisionId;
+    const promotedRevisions = onProcessRevisionsChange.mock.calls[0][0] as typeof processRevisions;
+    expect(promotedRevisions.find((revision) => revision.id === promotedDraftId)?.status).toBe('Active');
+    expect(promotedRevisions.find((revision) => revision.id === 'proc-rev-carburize-4')?.status).toBe('Draft');
     expect(screen.getByText('Draft promoted to active revision.')).toBeVisible();
+    expect(screen.getByText('Rev 6 Draft')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }));
+
+    const saveMasterCalls = onProcessMastersChange.mock.calls;
+    const savedMasters = saveMasterCalls[saveMasterCalls.length - 1][0] as typeof processMasters;
+    const savedMaster = savedMasters.find((processMaster) => processMaster.id === '12-496783-HT');
+    expect(savedMaster).toBeDefined();
+    if (!savedMaster) throw new Error('Expected saved process master');
+    expect(savedMaster.activeRevisionId).toBe(promotedDraftId);
+    expect(savedMaster.draftRevisionId).not.toBe(promotedDraftId);
+
+    const saveRevisionCalls = onProcessRevisionsChange.mock.calls;
+    const savedRevisions = saveRevisionCalls[saveRevisionCalls.length - 1][0] as typeof processRevisions;
+    expect(savedRevisions.find((revision) => revision.id === promotedDraftId)?.status).toBe('Active');
+    expect(savedRevisions.find((revision) => revision.id === 'proc-rev-carburize-4')?.status).toBe('Draft');
+    expect(savedRevisions.find((revision) => revision.id === savedMaster.draftRevisionId)?.status).toBe('Draft');
   });
 });

@@ -300,11 +300,13 @@ describe('getProcessRevisionReadiness', () => {
 });
 
 describe('promoteProcessDraftRevision', () => {
-  it('turns a ready draft into the active revision and updates the process master', () => {
+  it('turns a ready current draft into the active revision and updates the process master without mutation', () => {
+    const active = revision();
     const draft = revision({ id: 'proc-rev-draft', status: 'Draft', revision: 17 });
+    const originalProcessMaster = structuredClone(processMaster);
     const { processMaster: updatedMaster, revisions } = promoteProcessDraftRevision(
       processMaster,
-      [revision(), draft],
+      [active, draft],
       draft.id,
       dictionaries,
     );
@@ -312,6 +314,68 @@ describe('promoteProcessDraftRevision', () => {
     expect(updatedMaster.activeRevisionId).toBe('proc-rev-draft');
     expect(updatedMaster.draftRevisionId).toBe('');
     expect(revisions.find((entry) => entry.id === 'proc-rev-draft')?.status).toBe('Active');
+    expect(revisions.find((entry) => entry.id === 'proc-rev-active')?.status).toBe('Draft');
+    expect(processMaster).toEqual(originalProcessMaster);
+    expect(active.status).toBe('Active');
+    expect(draft.status).toBe('Draft');
+  });
+
+  it('allows promotion of a new unsaved draft when the process master has no draft pointer', () => {
+    const processMasterWithoutDraft = { ...processMaster, draftRevisionId: '' };
+    const draft = revision({ id: 'proc-rev-unsaved-draft', status: 'Draft', revision: 17 });
+    const result = promoteProcessDraftRevision(
+      processMasterWithoutDraft,
+      [revision(), draft],
+      draft.id,
+      dictionaries,
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.processMaster.activeRevisionId).toBe('proc-rev-unsaved-draft');
+    expect(result.processMaster.draftRevisionId).toBe('');
+  });
+
+  it('returns an error when the draft revision is missing', () => {
+    const revisions = [revision()];
+    const result = promoteProcessDraftRevision(processMaster, revisions, 'missing-draft', dictionaries);
+
+    expect(result.errors).toEqual(['Draft revision was not found.']);
+    expect(result.processMaster).toBe(processMaster);
+    expect(result.revisions).toBe(revisions);
+  });
+
+  it('returns an error when the selected revision is not a draft', () => {
+    const revisions = [revision(), revision({ id: 'proc-rev-draft', status: 'Draft', revision: 17 })];
+    const result = promoteProcessDraftRevision(processMaster, revisions, 'proc-rev-active', dictionaries);
+
+    expect(result.errors).toEqual(['Only draft revisions can be promoted.']);
+    expect(result.processMaster).toBe(processMaster);
+    expect(result.revisions).toBe(revisions);
+  });
+
+  it('returns an error when the draft belongs to another process master', () => {
+    const revisions = [
+      revision(),
+      revision({ id: 'proc-rev-other-draft', processMasterId: 'other-process-master', status: 'Draft', revision: 1 }),
+    ];
+    const result = promoteProcessDraftRevision(processMaster, revisions, 'proc-rev-other-draft', dictionaries);
+
+    expect(result.errors).toEqual(['Draft revision does not belong to the selected process master.']);
+    expect(result.processMaster).toBe(processMaster);
+    expect(result.revisions).toBe(revisions);
+  });
+
+  it('returns an error when the draft is stale for a process master with a current draft pointer', () => {
+    const revisions = [
+      revision(),
+      revision({ id: 'proc-rev-draft', status: 'Draft', revision: 17 }),
+      revision({ id: 'proc-rev-stale-draft', status: 'Draft', revision: 18 }),
+    ];
+    const result = promoteProcessDraftRevision(processMaster, revisions, 'proc-rev-stale-draft', dictionaries);
+
+    expect(result.errors).toEqual(["Draft revision is not the selected process master's current draft."]);
+    expect(result.processMaster).toBe(processMaster);
+    expect(result.revisions).toBe(revisions);
   });
 });
 
