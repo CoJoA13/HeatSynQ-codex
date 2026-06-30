@@ -397,4 +397,49 @@ describe('ProcessMaintenanceModule', () => {
     expect(onCustomerPartsChange).not.toHaveBeenCalled();
     expect(screen.getByText('Draft revisions cannot be assigned to parts.')).toBeVisible();
   });
+
+  it('prunes selected assignment parts when parent customer parts remove a selected part', async () => {
+    const user = userEvent.setup();
+    const onProcessMastersChange = vi.fn();
+    const onProcessRevisionsChange = vi.fn();
+    const onPlantSupportDictionaryEntriesChange = vi.fn();
+    const onCustomerPartsChange = vi.fn();
+    const rendered = render(
+      <ProcessMaintenanceModule
+        currentUser={users[0]}
+        processMasters={structuredClone(processMasters)}
+        processRevisions={structuredClone(processRevisions)}
+        plantSupportDictionaryEntries={structuredClone(plantSupportDictionaryEntries)}
+        customerParts={structuredClone(customerParts)}
+        onProcessMastersChange={onProcessMastersChange}
+        onProcessRevisionsChange={onProcessRevisionsChange}
+        onPlantSupportDictionaryEntriesChange={onPlantSupportDictionaryEntriesChange}
+        onCustomerPartsChange={onCustomerPartsChange}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /15-29900-003 Ductile Iron Austemper Route/i }));
+    await user.click(screen.getByLabelText('Assign 15-29900-DRAFT Draft Tow Variation'));
+
+    rendered.rerender(
+      <ProcessMaintenanceModule
+        currentUser={users[0]}
+        processMasters={processMasters}
+        processRevisions={processRevisions}
+        plantSupportDictionaryEntries={plantSupportDictionaryEntries}
+        customerParts={customerParts.filter((part) => part.id !== 'part-gfmco-draft')}
+        onProcessMastersChange={onProcessMastersChange}
+        onProcessRevisionsChange={onProcessRevisionsChange}
+        onPlantSupportDictionaryEntriesChange={onPlantSupportDictionaryEntriesChange}
+        onCustomerPartsChange={onCustomerPartsChange}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Assign 15-29900-DRAFT Draft Tow Variation')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Assign To Parts' }));
+
+    expect(screen.getByText('Select at least one customer part.')).toBeVisible();
+    expect(screen.queryByText('Selected customer part part-gfmco-draft was not found.')).not.toBeInTheDocument();
+  });
 });

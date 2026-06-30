@@ -129,13 +129,42 @@ export function PartMaintenanceModule({
         : undefined,
     [effectiveProcessRevisions, selectedProcessMaster],
   );
+  const storedProcessRevision = useMemo(
+    () =>
+      draft.processRevisionId
+        ? effectiveProcessRevisions.find((revision) => revision.id === draft.processRevisionId)
+        : undefined,
+    [draft.processRevisionId, effectiveProcessRevisions],
+  );
+  const storedProcessRevisionMissing = Boolean(draft.processRevisionId && !storedProcessRevision);
+  const storedProcessRevisionMismatch = Boolean(
+    selectedProcessMaster &&
+      storedProcessRevision &&
+      storedProcessRevision.processMasterId !== selectedProcessMaster.id,
+  );
+  const processRevisionForSummary =
+    selectedProcessMaster && draft.processRevisionId
+      ? storedProcessRevision?.processMasterId === selectedProcessMaster.id
+        ? storedProcessRevision
+        : undefined
+      : activeProcessRevision;
   const processSummary = useMemo(
     () =>
       selectedProcessMaster
-        ? getProcessDisplaySummary(selectedProcessMaster, activeProcessRevision, effectiveDictionaries)
+        ? getProcessDisplaySummary(selectedProcessMaster, processRevisionForSummary, effectiveDictionaries)
         : undefined,
-    [activeProcessRevision, effectiveDictionaries, selectedProcessMaster],
+    [effectiveDictionaries, processRevisionForSummary, selectedProcessMaster],
   );
+  const processRevisionStatus =
+    processRevisionForSummary && activeProcessRevision && processRevisionForSummary.id === activeProcessRevision.id
+      ? 'Current active revision'
+      : 'Not current active revision';
+  const processRevisionMessages = [
+    ...(storedProcessRevisionMissing ? ['Stored process revision was not found.'] : []),
+    ...(storedProcessRevisionMismatch
+      ? ['Stored process revision does not belong to selected process master.']
+      : []),
+  ];
 
   const filteredParts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
@@ -464,11 +493,22 @@ export function PartMaintenanceModule({
                   Cert required
                 </label>
               </div>
-              {processSummary && (
+              {processRevisionMessages.length > 0 && (
+                <div className="validation-summary" role="alert">
+                  {processRevisionMessages.map((message) => (
+                    <p key={message}>{message}</p>
+                  ))}
+                </div>
+              )}
+              {processSummary && processRevisionMessages.length === 0 && (
                 <dl className="definition-grid process-revision-grid">
                   <div>
-                    <dt>Active process revision</dt>
+                    <dt>Part process revision</dt>
                     <dd>{processSummary.revisionLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>Revision status</dt>
+                    <dd>{processRevisionStatus}</dd>
                   </div>
                   <div>
                     <dt>Process steps</dt>

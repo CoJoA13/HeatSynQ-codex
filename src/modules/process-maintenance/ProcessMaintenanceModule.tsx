@@ -168,7 +168,13 @@ export function ProcessMaintenanceModule({
   }, [plantSupportDictionaryEntries]);
 
   useEffect(() => {
-    setCustomerPartEntries(structuredClone(customerParts));
+    const nextCustomerParts = structuredClone(customerParts);
+    const nextCustomerPartIds = new Set(nextCustomerParts.map((part) => part.id));
+
+    setCustomerPartEntries(nextCustomerParts);
+    setSelectedPartIds((currentSelectedPartIds) =>
+      currentSelectedPartIds.filter((partId) => nextCustomerPartIds.has(partId)),
+    );
   }, [customerParts]);
 
   useEffect(() => {
