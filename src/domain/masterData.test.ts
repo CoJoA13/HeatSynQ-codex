@@ -9,14 +9,10 @@ import type { Customer, CustomerPart, ProcessMaster } from './types';
 
 const processMasters: ProcessMaster[] = [
   {
-    id: 'pm-austemper',
-    revision: 1,
-    processCode: 'Austemper',
-    material: 'Ductile Iron',
-    certificationId: 'CERT-A',
-    spec: 'ASTM A897',
-    comments: '',
-    steps: [],
+    id: '15-29900-003',
+    name: 'Ductile Iron Austemper Route',
+    activeRevisionId: 'proc-rev-austemper-16',
+    draftRevisionId: '',
   },
 ];
 
@@ -65,7 +61,8 @@ function part(overrides: Partial<CustomerPart> = {}): CustomerPart {
     id: 'part-gfmco-tow',
     customerId: 'cust-gfmco',
     partId: '15-29900-010',
-    processMasterId: 'pm-austemper',
+    processMasterId: '15-29900-003',
+    processRevisionId: 'proc-rev-austemper-16',
     partName: 'CNTR TOW',
     description: 'Machined center tow component',
     outgoingPartNumber: '15-29900-010-OUT',

@@ -24,4 +24,17 @@ describe('hasModulePermission', () => {
     expect(hasModulePermission(user, 'Part Maintenance')).toBe(true);
     expect(hasModulePermission(user, 'Order Entry')).toBe(false);
   });
+
+  it('allows Process Maintenance independently from other module permissions', () => {
+    const user: User = {
+      id: 'user-process',
+      name: 'Process Engineer',
+      permissions: ['Process Maintenance'],
+    };
+
+    expect(hasModulePermission(user, 'Process Maintenance')).toBe(true);
+    expect(hasModulePermission(user, 'Order Entry')).toBe(false);
+    expect(hasModulePermission(user, 'Customer Maintenance')).toBe(false);
+    expect(hasModulePermission(user, 'Part Maintenance')).toBe(false);
+  });
 });
