@@ -57,6 +57,23 @@ describe('OrderEntryModule', () => {
     expect(screen.getByText('Oil quench')).toBeInTheDocument();
   });
 
+  it('displays active process revision details and enhanced steps from shared process data', async () => {
+    const user = userEvent.setup();
+    render(<OrderEntryModule currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('tab', { name: 'Process' }));
+    await user.selectOptions(screen.getByLabelText('Process master'), '15-29900-003');
+
+    expect(screen.getByText('Rev 16 Active')).toBeInTheDocument();
+    expect(screen.getByText('Generic - AM')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Steps' }));
+
+    expect(screen.getByText('Austenitize')).toBeInTheDocument();
+    expect(screen.getByText('+/- 15 F')).toBeInTheDocument();
+    expect(screen.getByText('Controlled')).toBeInTheDocument();
+  });
+
   it('wires toolbar actions to the active order state', async () => {
     const user = userEvent.setup();
     render(<OrderEntryModule currentUser={users[0]} />);

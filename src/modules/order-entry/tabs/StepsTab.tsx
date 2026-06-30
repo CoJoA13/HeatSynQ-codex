@@ -39,9 +39,12 @@ export function StepsTab({
             <tr>
               <th>Seq</th>
               <th>Step</th>
-              <th>Furnace</th>
+              <th>Equipment</th>
               <th>Temp F</th>
               <th>Minutes</th>
+              <th>Tolerance</th>
+              <th>Atmosphere</th>
+              <th>Instructions</th>
             </tr>
           </thead>
           <tbody>
@@ -52,6 +55,9 @@ export function StepsTab({
                 <td>{getDictionaryName(plantSupportDictionaryEntries, step.equipmentId)}</td>
                 <td>{step.temperatureF}</td>
                 <td>{step.minutes}</td>
+                <td>{step.tolerance || 'None'}</td>
+                <td>{step.atmosphere || 'None'}</td>
+                <td>{step.instructions || 'None'}</td>
               </tr>
             ))}
           </tbody>

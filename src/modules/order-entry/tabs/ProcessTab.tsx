@@ -65,16 +65,24 @@ export function ProcessTab({
               <dd>{processSummary.material || 'None'}</dd>
             </div>
             <div>
-              <dt>Certification ID</dt>
-              <dd>{activeRevision?.certificationId || 'None'}</dd>
+              <dt>Cert format</dt>
+              <dd>{processSummary.certFormat || 'None'}</dd>
             </div>
             <div>
-              <dt>Spec</dt>
+              <dt>Specification</dt>
               <dd>{processSummary.specification || 'None'}</dd>
             </div>
             <div>
-              <dt>Comments</dt>
+              <dt>Process notes</dt>
               <dd>{activeRevision?.notes || 'None'}</dd>
+            </div>
+            <div>
+              <dt>Step count</dt>
+              <dd>{processSummary.stepCount}</dd>
+            </div>
+            <div>
+              <dt>Required inspections</dt>
+              <dd>{processSummary.requiredInspectionCount}</dd>
             </div>
           </dl>
         ) : (
