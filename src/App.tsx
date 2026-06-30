@@ -1,10 +1,6 @@
 import { users } from './data/seed';
-import { OrderEntryModule } from './modules/order-entry/OrderEntryModule';
+import { AppShell } from './components/AppShell';
 
 export default function App() {
-  return (
-    <main className="app-shell">
-      <OrderEntryModule currentUser={users[0]} />
-    </main>
-  );
+  return <AppShell currentUser={users[0]} />;
 }
