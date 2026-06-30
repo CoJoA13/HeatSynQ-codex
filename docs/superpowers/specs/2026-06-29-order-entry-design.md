@@ -8,6 +8,14 @@ HeatSynQ will start with an `Order Entry` module that replaces the Visual Shop r
 
 The design intentionally keeps Visual Shop muscle memory where it helps: toolbar actions, tabbed order sections, and persistent right-side activity panels. The main improvement is a visible readiness layer that shows whether an order can be released/printed and exactly what is missing when it cannot.
 
+## Larger System Direction
+
+HeatSynQ is intended to replace Visual Shop across the broader heat-treating ERP workflow, not stop at a single receiving/order-entry tool. `Order Entry` is the first module because receiving is the first workflow being validated.
+
+Future modules should follow the same permission-based model: a user gets access through named module permissions rather than role assignment. Candidate module areas will be planned separately as the product expands, such as customer maintenance, process master maintenance, production tracking, shipping, billing/accounts receivable, reporting, administration, and other Visual Shop workflows that matter to heat treating.
+
+The production architecture should use a centralized database hosted on the on-prem server. The system must support multiple simultaneous users working against the same shared data, with backend persistence, concurrency handling, audit history, and record locking or conflict handling designed before HeatSynQ moves beyond prototype-only seeded data.
+
 ## Reference Sources
 
 Primary local references:
@@ -41,6 +49,7 @@ Relevant Visual Shop patterns observed:
 - No role-based access model.
 - No action-level permission model in the first version.
 - No actual document upload workflow in the first prototype; document references are displayed with seeded data only.
+- No centralized database, backend persistence, or multi-user concurrency implementation in this first prototype; those are required production architecture goals for later phases.
 
 ## Permission Model
 
