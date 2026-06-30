@@ -160,6 +160,55 @@ describe('ProcessMaintenanceModule', () => {
     expect(screen.getByDisplayValue('Parent synchronized spec')).toBeInTheDocument();
   });
 
+  it('syncs the selected local draft when parent process props clear the draft revision pointer', async () => {
+    const user = userEvent.setup();
+    const onProcessMastersChange = vi.fn();
+    const onProcessRevisionsChange = vi.fn();
+    const onPlantSupportDictionaryEntriesChange = vi.fn();
+    const onCustomerPartsChange = vi.fn();
+    const initialRevisions = processRevisions.map((revision) =>
+      revision.id === 'proc-rev-austemper-draft' ? { ...revision, revision: 99 } : revision,
+    );
+    const rendered = render(
+      <ProcessMaintenanceModule
+        currentUser={users[0]}
+        processMasters={structuredClone(processMasters)}
+        processRevisions={initialRevisions}
+        plantSupportDictionaryEntries={structuredClone(plantSupportDictionaryEntries)}
+        customerParts={structuredClone(customerParts)}
+        onProcessMastersChange={onProcessMastersChange}
+        onProcessRevisionsChange={onProcessRevisionsChange}
+        onPlantSupportDictionaryEntriesChange={onPlantSupportDictionaryEntriesChange}
+        onCustomerPartsChange={onCustomerPartsChange}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /15-29900-003 Ductile Iron Austemper Route/i }));
+    expect(screen.getByText('Rev 99 Draft')).toBeInTheDocument();
+
+    const clearedDraftMasters = processMasters.map((processMaster) =>
+      processMaster.id === '15-29900-003' ? { ...processMaster, draftRevisionId: '' } : processMaster,
+    );
+    const promotedRevisions = initialRevisions.filter((revision) => revision.id !== 'proc-rev-austemper-draft');
+
+    rendered.rerender(
+      <ProcessMaintenanceModule
+        currentUser={users[0]}
+        processMasters={clearedDraftMasters}
+        processRevisions={promotedRevisions}
+        plantSupportDictionaryEntries={plantSupportDictionaryEntries}
+        customerParts={customerParts}
+        onProcessMastersChange={onProcessMastersChange}
+        onProcessRevisionsChange={onProcessRevisionsChange}
+        onPlantSupportDictionaryEntriesChange={onPlantSupportDictionaryEntriesChange}
+        onCustomerPartsChange={onCustomerPartsChange}
+      />,
+    );
+
+    expect(await screen.findByText('Rev 17 Draft')).toBeInTheDocument();
+    expect(screen.queryByText('Rev 99 Draft')).not.toBeInTheDocument();
+  });
+
   it('adds, duplicates, moves, and removes process steps in the draft', async () => {
     const user = userEvent.setup();
     renderProcessMaintenance();

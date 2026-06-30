@@ -78,6 +78,7 @@ export function ProcessMaintenanceModule({
   const [searchQuery, setSearchQuery] = useState('');
   const [saveSummary, setSaveSummary] = useState('');
   const [hasUnsavedDraftEdits, setHasUnsavedDraftEdits] = useState(false);
+  const [syncedDraftRevisionId, setSyncedDraftRevisionId] = useState(firstProcessMaster?.draftRevisionId ?? '');
 
   const selectedProcessMaster =
     processMasters.find((processMaster) => processMaster.id === selectedProcessMasterId) ?? firstProcessMaster;
@@ -104,6 +105,7 @@ export function ProcessMaintenanceModule({
       if (selectedProcessMasterId) setSelectedProcessMasterId('');
       if (draftRevision) setDraftRevision(undefined);
       if (hasUnsavedDraftEdits) setHasUnsavedDraftEdits(false);
+      if (syncedDraftRevisionId) setSyncedDraftRevisionId('');
       return;
     }
 
@@ -114,6 +116,7 @@ export function ProcessMaintenanceModule({
       setSelectedProcessMasterId(nextSelectedProcessMaster.id);
       setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
       setHasUnsavedDraftEdits(false);
+      setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
       setSaveSummary('');
       return;
     }
@@ -121,20 +124,25 @@ export function ProcessMaintenanceModule({
     if (!draftRevision || draftRevision.processMasterId !== nextSelectedProcessMaster.id) {
       setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
       setHasUnsavedDraftEdits(false);
+      setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
       setSaveSummary('');
       return;
     }
 
-    if (
-      !hasUnsavedDraftEdits &&
-      nextSelectedProcessMaster.draftRevisionId &&
-      draftRevision.id !== nextSelectedProcessMaster.draftRevisionId
-    ) {
+    if (!hasUnsavedDraftEdits && nextSelectedProcessMaster.draftRevisionId !== syncedDraftRevisionId) {
       setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
       setHasUnsavedDraftEdits(false);
+      setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
       setSaveSummary('');
     }
-  }, [draftRevision, hasUnsavedDraftEdits, processMasters, processRevisions, selectedProcessMasterId]);
+  }, [
+    draftRevision,
+    hasUnsavedDraftEdits,
+    processMasters,
+    processRevisions,
+    selectedProcessMasterId,
+    syncedDraftRevisionId,
+  ]);
 
   const activeProcessCodes = useMemo(
     () => filterActiveDictionaryEntries(plantSupportDictionaryEntries, 'Process Code'),
@@ -212,6 +220,7 @@ export function ProcessMaintenanceModule({
     setSelectedProcessMasterId(processMaster.id);
     setDraftRevision(nextDraftRevision);
     setHasUnsavedDraftEdits(false);
+    setSyncedDraftRevisionId(processMaster.draftRevisionId);
     setSaveSummary('');
   }
 
