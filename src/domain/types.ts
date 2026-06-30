@@ -1,4 +1,4 @@
-export type ModulePermission = 'Order Entry';
+export type ModulePermission = 'Order Entry' | 'Customer Maintenance' | 'Part Maintenance';
 
 export interface User {
   id: string;
@@ -12,6 +12,106 @@ export interface Customer {
   phone: string;
   receivedFrom: string;
   shipTo: string;
+  alphaKey: string;
+  customerType: string;
+  plant: string;
+  terms: string;
+  attention: string;
+  region: string;
+  rank: string;
+  active: boolean;
+  reviewRequired: boolean;
+  cod: boolean;
+  creditHold: boolean;
+  orderRules: CustomerOrderRules;
+  addresses: CustomerAddress[];
+  contacts: CustomerContact[];
+  requirements: CustomerRequirement[];
+  documents: DocumentReference[];
+}
+
+export interface CustomerOrderRules {
+  defaultReceivedFrom: string;
+  defaultShipTo: string;
+  requestDays: number;
+  targetDays: number;
+  poRequired: boolean;
+  validateProcessCode: boolean;
+  validateMaterial: boolean;
+  defaultRoute: string;
+  defaultCarrier: string;
+  defaultCertFormat: string;
+  certEveryOrder: boolean;
+  notes: string;
+}
+
+export interface CustomerAddress {
+  id: string;
+  type: 'Ship To' | 'Bill To' | 'Received From' | 'Other';
+  name: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  email: string;
+}
+
+export interface CustomerContact {
+  id: string;
+  name: string;
+  title: string;
+  phone: string;
+  email: string;
+  receivesQuotes: boolean;
+  receivesCerts: boolean;
+  receivesInvoices: boolean;
+}
+
+export interface CustomerRequirement {
+  id: string;
+  category: 'Order' | 'Shipping' | 'Process' | 'Inspection' | 'Quote' | 'Certification';
+  text: string;
+}
+
+export interface PartPriceSummary {
+  setup: number;
+  amount: number;
+  pricePer: string;
+  minimum: number;
+}
+
+export interface PartQuoteSummary {
+  quoteId: string;
+  quotedQuantity: number;
+  effectiveDate: string;
+  expirationDate: string;
+  contact: string;
+  salesPerson: string;
+}
+
+export interface CustomerPart {
+  id: string;
+  partId: string;
+  customerId: string;
+  processMasterId: string;
+  partName: string;
+  description: string;
+  outgoingPartNumber: string;
+  blanketPo: string;
+  revision: string;
+  material: string;
+  specification: string;
+  customerSpecification: string;
+  certFormat: string;
+  certRequired: boolean;
+  eachWeight: number;
+  thickness: number;
+  inactive: boolean;
+  partHold: boolean;
+  shippingHold: boolean;
+  price: PartPriceSummary;
+  quote: PartQuoteSummary;
+  notes: string;
 }
 
 export interface Container {

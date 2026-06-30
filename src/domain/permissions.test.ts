@@ -12,4 +12,16 @@ describe('hasModulePermission', () => {
     const user: User = { id: 'user-2', name: 'Viewer', permissions: [] };
     expect(hasModulePermission(user, 'Order Entry')).toBe(false);
   });
+
+  it('does not grant Order Entry when a user only has maintenance permissions', () => {
+    const user: User = {
+      id: 'user-3',
+      name: 'Master Data Clerk',
+      permissions: ['Customer Maintenance', 'Part Maintenance'],
+    };
+
+    expect(hasModulePermission(user, 'Customer Maintenance')).toBe(true);
+    expect(hasModulePermission(user, 'Part Maintenance')).toBe(true);
+    expect(hasModulePermission(user, 'Order Entry')).toBe(false);
+  });
 });
