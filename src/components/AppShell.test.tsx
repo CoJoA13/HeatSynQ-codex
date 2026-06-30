@@ -39,6 +39,24 @@ describe('AppShell', () => {
     expect(screen.getAllByRole('main')).toHaveLength(1);
   });
 
+  it('rehydrates Part Maintenance draft state from shared app parts after remounting', async () => {
+    const user = userEvent.setup();
+    render(<AppShell currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Part Maintenance' }));
+    await user.clear(screen.getByLabelText('Part name'));
+    await user.type(screen.getByLabelText('Part name'), 'Shared Tow Update');
+    await user.click(screen.getByRole('button', { name: 'Save Part' }));
+
+    expect(screen.getByText('Part saved.')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Customer Maintenance' }));
+    await user.click(screen.getByRole('button', { name: 'Part Maintenance' }));
+
+    expect(screen.getByLabelText('Part name')).toHaveDisplayValue('Shared Tow Update');
+    expect(screen.getByRole('button', { name: '15-29900-010 Shared Tow Update' })).toBeInTheDocument();
+  });
+
   it('defaults to the first enabled module when Order Entry is not enabled', () => {
     const partOnlyUser: User = {
       id: 'part-only',

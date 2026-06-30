@@ -103,11 +103,11 @@ export function PartMaintenanceModule({
   processRevisions,
   plantSupportDictionaryEntries,
 }: PartMaintenanceModuleProps) {
+  const initialParts = parts ?? seededCustomerParts;
+  const initialPart = initialParts[0];
   const [localParts, setLocalParts] = useState<CustomerPart[]>(cloneParts);
-  const [selectedPartId, setSelectedPartId] = useState(seededCustomerParts[0]?.id ?? '');
-  const [draft, setDraft] = useState<CustomerPart>(() =>
-    structuredClone(seededCustomerParts[0] ?? createBlankPart()),
-  );
+  const [selectedPartId, setSelectedPartId] = useState(initialPart?.id ?? '');
+  const [draft, setDraft] = useState<CustomerPart>(() => structuredClone(initialPart ?? createBlankPart()));
   const [searchQuery, setSearchQuery] = useState('');
   const [includeInactive, setIncludeInactive] = useState(false);
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
