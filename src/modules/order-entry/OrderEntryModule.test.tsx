@@ -67,6 +67,23 @@ describe('OrderEntryModule', () => {
     expect(screen.getByRole('heading', { name: 'Ready to Release' })).toBeInTheDocument();
   });
 
+  it('checks draft readiness before building part and container totals', async () => {
+    const user = userEvent.setup();
+    render(<OrderEntryModule currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('button', { name: /new order/i }));
+    await user.click(screen.getByRole('button', { name: /check/i }));
+
+    expect(screen.getByText(/Missing: Assigned customer/i)).toBeVisible();
+
+    await user.click(screen.getByRole('tab', { name: 'Parts' }));
+    await user.click(screen.getByRole('button', { name: /add container/i }));
+
+    expect(screen.getByRole('heading', { name: 'Container Totals' })).toBeVisible();
+    expect(screen.getByLabelText('Container 1 quantity')).toHaveValue(1);
+    expect(screen.getByText('Net weight 0.00 lb')).toBeVisible();
+  });
+
   it('uses readiness items as shortcuts to the related tabs', async () => {
     const user = userEvent.setup();
     render(<OrderEntryModule currentUser={users[0]} />);

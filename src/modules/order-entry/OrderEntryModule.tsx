@@ -10,6 +10,7 @@ import { OrderToolbar } from './components/OrderToolbar';
 import { ReadinessChecklist } from './components/ReadinessChecklist';
 import { DetailTab } from './tabs/DetailTab';
 import { OrderTopTab } from './tabs/OrderTopTab';
+import { PartsTab } from './tabs/PartsTab';
 import { ProcessTab } from './tabs/ProcessTab';
 import { StepsTab } from './tabs/StepsTab';
 
@@ -91,10 +92,11 @@ export function OrderEntryModule({ currentUser }: OrderEntryModuleProps) {
   function renderActiveTab() {
     if (activeTab === 'Order Top') return <OrderTopTab order={order} onOrderChange={setOrder} />;
     if (activeTab === 'Detail') return <DetailTab order={order} />;
+    if (activeTab === 'Parts') return <PartsTab order={order} onOrderChange={setOrder} />;
     if (activeTab === 'Process') return <ProcessTab order={order} onOrderChange={setOrder} />;
     if (activeTab === 'Steps') return <StepsTab order={order} />;
 
-    return <div className="empty-state">Parts entry will be added next task.</div>;
+    return null;
   }
 
   return (
@@ -116,7 +118,7 @@ export function OrderEntryModule({ currentUser }: OrderEntryModuleProps) {
               readiness.ready ? 'Ready Check' : 'Blocked Check',
               readiness.ready
                 ? 'Order is ready to release'
-                : `Missing: ${readiness.missing.map((item) => item.label).join(', ')}`,
+                : `Release blocked. Missing: ${readiness.missing.map((item) => item.label).join(', ')}`,
             );
           }}
           onSave={() => addEvent('Saved', 'Order saved from Order Entry')}
