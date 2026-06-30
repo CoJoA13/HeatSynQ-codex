@@ -915,8 +915,11 @@ export function ProcessMaintenanceModule({
                         <tr>
                           <th scope="col">Seq</th>
                           <th scope="col">Step</th>
+                          <th scope="col">Table Key</th>
                           <th scope="col">Process</th>
                           <th scope="col">Equipment</th>
+                          <th scope="col">Group</th>
+                          <th scope="col">Cost Center</th>
                           <th scope="col">Temp F</th>
                           <th scope="col">Minutes</th>
                           <th scope="col">Actions</th>
@@ -932,6 +935,16 @@ export function ProcessMaintenanceModule({
                                 value={step.name}
                                 onChange={(event) => updateStep(index, 'name', event.target.value)}
                               />
+                            </td>
+                            <td>
+                              <select
+                                aria-label={`Draft step ${index + 1} table key`}
+                                value={step.tableKeyId}
+                                onChange={(event) => updateStep(index, 'tableKeyId', event.target.value)}
+                              >
+                                <option value="">Select table key</option>
+                                {renderDictionaryOptions(activeTableKeys)}
+                              </select>
                             </td>
                             <td>
                               <select
@@ -951,6 +964,26 @@ export function ProcessMaintenanceModule({
                               >
                                 <option value="">Select equipment</option>
                                 {renderDictionaryOptions(activeEquipment)}
+                              </select>
+                            </td>
+                            <td>
+                              <select
+                                aria-label={`Draft step ${index + 1} group`}
+                                value={step.groupId}
+                                onChange={(event) => updateStep(index, 'groupId', event.target.value)}
+                              >
+                                <option value="">Select group</option>
+                                {renderDictionaryOptions(activeGroups)}
+                              </select>
+                            </td>
+                            <td>
+                              <select
+                                aria-label={`Draft step ${index + 1} cost center`}
+                                value={step.costCenterId}
+                                onChange={(event) => updateStep(index, 'costCenterId', event.target.value)}
+                              >
+                                <option value="">Select cost center</option>
+                                {renderDictionaryOptions(activeCostCenters)}
                               </select>
                             </td>
                             <td>

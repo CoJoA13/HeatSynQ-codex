@@ -277,6 +277,20 @@ describe('ProcessMaintenanceModule', () => {
     expect(within(stepTable).getAllByRole('row')).toHaveLength(2);
   });
 
+  it('exposes readiness-validated dictionary references for draft steps', async () => {
+    const user = userEvent.setup();
+    renderProcessMaintenance();
+
+    await user.click(screen.getByRole('button', { name: /15-29900-003 Ductile Iron Austemper Route/i }));
+    await user.click(screen.getByRole('button', { name: 'Add Step' }));
+    await user.selectOptions(screen.getByLabelText('Draft step 1 table key'), 'dict-table-carburize-furnace');
+    await user.selectOptions(screen.getByLabelText('Draft step 1 cost center'), 'dict-cost-center-inspection');
+
+    expect(screen.getByLabelText('Draft step 1 table key')).toHaveDisplayValue('CARB-FURN - Carburize Furnace');
+    expect(screen.getByLabelText('Draft step 1 group')).toHaveDisplayValue('HT - Heat Treat');
+    expect(screen.getByLabelText('Draft step 1 cost center')).toHaveDisplayValue('CC-INSP - Inspection');
+  });
+
   it('adds an inspection requirement with acceptance targets', async () => {
     const user = userEvent.setup();
     renderProcessMaintenance();

@@ -57,6 +57,26 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: '15-29900-010 Shared Tow Update' })).toBeInTheDocument();
   });
 
+  it('carries Process Maintenance assignments into Part Maintenance through shared app state', async () => {
+    const user = userEvent.setup();
+    render(<AppShell currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Process Maintenance' }));
+    await user.click(screen.getByRole('button', { name: /15-29900-003 Ductile Iron Austemper Route/i }));
+    await user.click(screen.getByLabelText('Assign 15-29900-DRAFT Draft Tow Variation'));
+    await user.click(screen.getByRole('button', { name: 'Assign To Parts' }));
+
+    expect(screen.getByText('Assigned process revision to 1 part.')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Part Maintenance' }));
+    await user.type(screen.getByLabelText('Search parts'), '15-29900-DRAFT');
+    await user.click(screen.getByRole('button', { name: /15-29900-DRAFT Draft Tow Variation/i }));
+
+    expect(screen.getByText('Rev 16 Active')).toBeInTheDocument();
+    expect(screen.getByText('4 process steps')).toBeInTheDocument();
+    expect(screen.getByText('1 required inspection')).toBeInTheDocument();
+  });
+
   it('defaults to the first enabled module when Order Entry is not enabled', () => {
     const partOnlyUser: User = {
       id: 'part-only',
