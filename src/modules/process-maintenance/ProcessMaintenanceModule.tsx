@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ModuleGate } from '../../components/ModuleGate';
 import {
+  assignProcessRevisionToParts,
   filterActiveDictionaryEntries,
   getActiveProcessRevision,
   getDraftProcessRevision,
@@ -103,6 +104,7 @@ export function ProcessMaintenanceModule({
   onProcessMastersChange,
   onProcessRevisionsChange,
   onPlantSupportDictionaryEntriesChange,
+  onCustomerPartsChange,
 }: ProcessMaintenanceModuleProps) {
   const [processMasterEntries, setProcessMasterEntries] = useState<ProcessMaster[]>(() =>
     structuredClone(processMasters),
@@ -124,6 +126,10 @@ export function ProcessMaintenanceModule({
   );
   const [showDictionaryDraft, setShowDictionaryDraft] = useState(false);
   const [dictionaryDraft, setDictionaryDraft] = useState<DictionaryDraft>(() => createEmptyDictionaryDraft());
+  const [customerPartEntries, setCustomerPartEntries] = useState<CustomerPart[]>(() => structuredClone(customerParts));
+  const [selectedPartIds, setSelectedPartIds] = useState<string[]>([]);
+  const [assignmentTargetMode, setAssignmentTargetMode] = useState<'active' | 'draft-preview'>('active');
+  const [assignmentMessages, setAssignmentMessages] = useState<string[]>([]);
 
   const selectedProcessMaster =
     processMasterEntries.find((processMaster) => processMaster.id === selectedProcessMasterId) ?? firstProcessMaster;
@@ -139,9 +145,15 @@ export function ProcessMaintenanceModule({
       : undefined;
   const draftReadiness = draftRevision ? getProcessRevisionReadiness(draftRevision, dictionaryEntries) : undefined;
   const readinessMessages = draftReadiness?.blockers ?? [];
+  const feedbackMessages = assignmentMessages.length > 0 ? assignmentMessages : readinessMessages;
   const assignedPartCount = selectedProcessMaster
-    ? customerParts.filter((part) => part.processMasterId === selectedProcessMaster.id).length
+    ? customerPartEntries.filter((part) => part.processMasterId === selectedProcessMaster.id).length
     : 0;
+  const assignmentTargetRevision = assignmentTargetMode === 'draft-preview' ? draftRevision : activeRevision;
+  const assignmentTargetSummary =
+    selectedProcessMaster && assignmentTargetRevision
+      ? getProcessDisplaySummary(selectedProcessMaster, assignmentTargetRevision, dictionaryEntries)
+      : undefined;
 
   useEffect(() => {
     setProcessMasterEntries(structuredClone(processMasters));
@@ -154,6 +166,10 @@ export function ProcessMaintenanceModule({
   useEffect(() => {
     setDictionaryEntries(structuredClone(plantSupportDictionaryEntries));
   }, [plantSupportDictionaryEntries]);
+
+  useEffect(() => {
+    setCustomerPartEntries(structuredClone(customerParts));
+  }, [customerParts]);
 
   useEffect(() => {
     if (processMasterEntries.length === 0) {
@@ -174,6 +190,9 @@ export function ProcessMaintenanceModule({
       setHasUnsavedDraftEdits(false);
       setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
       setSaveSummary('');
+      setSelectedPartIds([]);
+      setAssignmentTargetMode('active');
+      setAssignmentMessages([]);
       return;
     }
 
@@ -182,6 +201,8 @@ export function ProcessMaintenanceModule({
       setHasUnsavedDraftEdits(false);
       setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
       setSaveSummary('');
+      setAssignmentTargetMode('active');
+      setAssignmentMessages([]);
       return;
     }
 
@@ -193,6 +214,8 @@ export function ProcessMaintenanceModule({
       setHasUnsavedDraftEdits(false);
       setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
       setSaveSummary('');
+      setAssignmentTargetMode('active');
+      setAssignmentMessages([]);
     }
   }, [
     draftRevision,
@@ -281,12 +304,16 @@ export function ProcessMaintenanceModule({
     setHasUnsavedDraftEdits(false);
     setSyncedDraftRevisionId(processMaster.draftRevisionId);
     setSaveSummary('');
+    setSelectedPartIds([]);
+    setAssignmentTargetMode('active');
+    setAssignmentMessages([]);
   }
 
   function updateDraft(nextDraftRevision: ProcessRevision) {
     setDraftRevision(nextDraftRevision);
     setHasUnsavedDraftEdits(true);
     setSaveSummary('');
+    setAssignmentMessages([]);
   }
 
   function saveDraft() {
@@ -316,6 +343,7 @@ export function ProcessMaintenanceModule({
     setDraftRevision(savedDraft);
     setHasUnsavedDraftEdits(false);
     setSaveSummary('Draft saved.');
+    setAssignmentMessages([]);
   }
 
   function createNewDraftRevision() {
@@ -327,6 +355,8 @@ export function ProcessMaintenanceModule({
     setHasUnsavedDraftEdits(true);
     setSyncedDraftRevisionId(selectedProcessMaster.draftRevisionId);
     setSaveSummary('');
+    setAssignmentTargetMode('active');
+    setAssignmentMessages([]);
   }
 
   function saveDictionaryEntry() {
@@ -390,6 +420,57 @@ export function ProcessMaintenanceModule({
     setHasUnsavedDraftEdits(false);
     setSyncedDraftRevisionId(promotion.processMaster.draftRevisionId);
     setSaveSummary('Draft promoted to active revision.');
+    setAssignmentTargetMode('active');
+    setAssignmentMessages([]);
+  }
+
+  function toggleSelectedPart(partId: string, selected: boolean) {
+    setSelectedPartIds((currentSelectedPartIds) => {
+      if (selected) {
+        if (currentSelectedPartIds.includes(partId)) return currentSelectedPartIds;
+        return [...currentSelectedPartIds, partId];
+      }
+
+      return currentSelectedPartIds.filter((selectedPartId) => selectedPartId !== partId);
+    });
+    setSaveSummary('');
+    setAssignmentMessages([]);
+  }
+
+  function previewDraftAssignmentTarget() {
+    setAssignmentTargetMode('draft-preview');
+    setSaveSummary('');
+    setAssignmentMessages([]);
+  }
+
+  function assignSelectedParts() {
+    if (!selectedProcessMaster || !assignmentTargetRevision) {
+      setAssignmentMessages(['No process revision is available for assignment.']);
+      setSaveSummary('');
+      return;
+    }
+
+    const selectedPartCount = selectedPartIds.length;
+    const result = assignProcessRevisionToParts({
+      parts: customerPartEntries,
+      selectedPartIds,
+      processMaster: selectedProcessMaster,
+      revision: assignmentTargetRevision,
+      dictionaries: dictionaryEntries,
+    });
+
+    if (result.errors.length > 0) {
+      setAssignmentMessages([...result.errors, ...result.warnings]);
+      setSaveSummary('');
+      return;
+    }
+
+    setCustomerPartEntries(result.updatedParts);
+    onCustomerPartsChange(result.updatedParts);
+    setAssignmentMessages(result.warnings);
+    setSaveSummary(
+      `Assigned process revision to ${selectedPartCount} ${selectedPartCount === 1 ? 'part' : 'parts'}.`,
+    );
   }
 
   function addStep() {
@@ -597,15 +678,60 @@ export function ProcessMaintenanceModule({
                   <span>{draftReadiness.promotable ? 'Promotable' : 'Promotion blocked'}</span>
                   <span>{draftReadiness.assignable ? 'Assignable to parts' : 'Not assignable to parts'}</span>
                 </div>
-                {readinessMessages.length > 0 ? (
+                {feedbackMessages.length > 0 ? (
                   <div className="validation-summary" role="alert">
-                    {readinessMessages.map((message) => (
+                    {feedbackMessages.map((message) => (
                       <p key={message}>{message}</p>
                     ))}
                   </div>
                 ) : (
                   <p className="empty-copy">No readiness issues found.</p>
                 )}
+              </section>
+            )}
+
+            {selectedProcessMaster && (
+              <section className="master-section process-assignment-panel" aria-labelledby="process-assignment-heading">
+                <div className="section-toolbar">
+                  <h2 id="process-assignment-heading">Process Assignment</h2>
+                  <div className="toolbar-group">
+                    {draftRevision && (
+                      <button className="toolbar-button" type="button" onClick={previewDraftAssignmentTarget}>
+                        Use Draft For Assignment Preview
+                      </button>
+                    )}
+                    <button className="toolbar-button toolbar-button-primary" type="button" onClick={assignSelectedParts}>
+                      Assign To Parts
+                    </button>
+                  </div>
+                </div>
+                <dl className="definition-grid process-revision-grid">
+                  <div>
+                    <dt>Assignment target</dt>
+                    <dd aria-label={`Assignment target ${assignmentTargetSummary?.revisionLabel ?? 'No active revision'}`}>
+                      {assignmentTargetMode === 'draft-preview' ? 'Draft preview' : 'Current active'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Selected parts</dt>
+                    <dd>{selectedPartIds.length}</dd>
+                  </div>
+                </dl>
+                <div className="simple-list" aria-label="Customer parts for assignment">
+                  {customerPartEntries.map((part) => (
+                    <label className="show-inactive-toggle" key={part.id}>
+                      <input
+                        type="checkbox"
+                        checked={selectedPartIds.includes(part.id)}
+                        onChange={(event) => toggleSelectedPart(part.id, event.target.checked)}
+                        aria-label={`Assign ${part.partId} ${part.partName || 'Unnamed part'}`}
+                      />
+                      <span>
+                        <strong>{part.partId}</strong> {part.partName || 'Unnamed part'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </section>
             )}
 

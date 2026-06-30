@@ -366,4 +366,35 @@ describe('ProcessMaintenanceModule', () => {
     expect(savedRevisions.find((revision) => revision.id === 'proc-rev-carburize-4')?.status).toBe('Draft');
     expect(savedRevisions.find((revision) => revision.id === savedMaster.draftRevisionId)?.status).toBe('Draft');
   });
+
+  it('assigns the active process revision to multiple customer parts', async () => {
+    const user = userEvent.setup();
+    const { onCustomerPartsChange } = renderProcessMaintenance();
+
+    await user.click(screen.getByRole('button', { name: /15-29900-003 Ductile Iron Austemper Route/i }));
+    await user.click(screen.getByLabelText('Assign 15-29900-DRAFT Draft Tow Variation'));
+    await user.click(screen.getByRole('button', { name: 'Assign To Parts' }));
+
+    expect(onCustomerPartsChange).toHaveBeenCalled();
+    const assignmentCalls = onCustomerPartsChange.mock.calls;
+    const updatedParts = assignmentCalls[assignmentCalls.length - 1][0] as typeof customerParts;
+    expect(updatedParts.find((part) => part.id === 'part-gfmco-draft')).toMatchObject({
+      processMasterId: '15-29900-003',
+      processRevisionId: 'proc-rev-austemper-16',
+    });
+    expect(screen.getByText('Assigned process revision to 1 part.')).toBeVisible();
+  });
+
+  it('blocks assigning a draft revision to parts', async () => {
+    const user = userEvent.setup();
+    const { onCustomerPartsChange } = renderProcessMaintenance();
+
+    await user.click(screen.getByRole('button', { name: /15-29900-003 Ductile Iron Austemper Route/i }));
+    await user.click(screen.getByRole('button', { name: 'Use Draft For Assignment Preview' }));
+    await user.click(screen.getByLabelText('Assign 15-29900-DRAFT Draft Tow Variation'));
+    await user.click(screen.getByRole('button', { name: 'Assign To Parts' }));
+
+    expect(onCustomerPartsChange).not.toHaveBeenCalled();
+    expect(screen.getByText('Draft revisions cannot be assigned to parts.')).toBeVisible();
+  });
 });

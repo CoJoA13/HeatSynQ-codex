@@ -92,4 +92,16 @@ describe('PartMaintenanceModule', () => {
 
     expect(within(partList).queryByRole('list')).not.toBeInTheDocument();
   });
+
+  it('shows shared active process revision details for a linked part', async () => {
+    const user = userEvent.setup();
+    render(<PartMaintenanceModule currentUser={users[0]} />);
+
+    await user.type(screen.getByLabelText('Search parts'), '15-29900-010');
+    await user.click(screen.getByRole('button', { name: /15-29900-010 CNTR TOW/i }));
+
+    expect(screen.getByText('Rev 16 Active')).toBeInTheDocument();
+    expect(screen.getByText('4 process steps')).toBeInTheDocument();
+    expect(screen.getByText('1 required inspection')).toBeInTheDocument();
+  });
 });

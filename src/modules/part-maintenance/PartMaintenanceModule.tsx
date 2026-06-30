@@ -8,6 +8,7 @@ import {
   processRevisions as seededProcessRevisions,
 } from '../../data/seed';
 import { getPartOrderEntryStatus, validateCustomerPart } from '../../domain/masterData';
+import { getActiveProcessRevision, getProcessDisplaySummary } from '../../domain/processFoundation';
 import type {
   CustomerPart,
   PartPriceSummary,
@@ -117,6 +118,24 @@ export function PartMaintenanceModule({
   const effectiveProcessMasters = processMasters ?? seededProcessMasters;
   const effectiveProcessRevisions = processRevisions ?? seededProcessRevisions;
   const effectiveDictionaries = plantSupportDictionaryEntries ?? seededPlantSupportDictionaryEntries;
+  const selectedProcessMaster = useMemo(
+    () => effectiveProcessMasters.find((processMaster) => processMaster.id === draft.processMasterId),
+    [draft.processMasterId, effectiveProcessMasters],
+  );
+  const activeProcessRevision = useMemo(
+    () =>
+      selectedProcessMaster
+        ? getActiveProcessRevision(selectedProcessMaster, effectiveProcessRevisions)
+        : undefined,
+    [effectiveProcessRevisions, selectedProcessMaster],
+  );
+  const processSummary = useMemo(
+    () =>
+      selectedProcessMaster
+        ? getProcessDisplaySummary(selectedProcessMaster, activeProcessRevision, effectiveDictionaries)
+        : undefined,
+    [activeProcessRevision, effectiveDictionaries, selectedProcessMaster],
+  );
 
   const filteredParts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
@@ -445,6 +464,29 @@ export function PartMaintenanceModule({
                   Cert required
                 </label>
               </div>
+              {processSummary && (
+                <dl className="definition-grid process-revision-grid">
+                  <div>
+                    <dt>Active process revision</dt>
+                    <dd>{processSummary.revisionLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>Process steps</dt>
+                    <dd>
+                      {processSummary.stepCount} {processSummary.stepCount === 1 ? 'process step' : 'process steps'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Required inspections</dt>
+                    <dd>
+                      {processSummary.requiredInspectionCount}{' '}
+                      {processSummary.requiredInspectionCount === 1
+                        ? 'required inspection'
+                        : 'required inspections'}
+                    </dd>
+                  </div>
+                </dl>
+              )}
             </section>
 
             <section className="master-section" aria-labelledby="part-pricing-heading">
