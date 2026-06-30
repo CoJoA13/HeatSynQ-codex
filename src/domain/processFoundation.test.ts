@@ -3,6 +3,7 @@ import {
   assignProcessRevisionToParts,
   filterActiveDictionaryEntries,
   getActiveProcessRevision,
+  getDraftProcessRevision,
   getProcessDisplaySummary,
   getProcessRevisionReadiness,
   validateProcessRevisionForPromotion,
@@ -63,6 +64,15 @@ const dictionaries: PlantSupportDictionaryEntry[] = [
     category: 'Production',
   },
   {
+    id: 'dict-group-old',
+    kind: 'Group',
+    code: 'OLD-HT',
+    name: 'Old Heat Treat',
+    description: 'Inactive heat treat group.',
+    active: false,
+    category: 'Production',
+  },
+  {
     id: 'dict-cost-center-furnace',
     kind: 'Cost Center',
     code: 'CC-FURN',
@@ -72,12 +82,30 @@ const dictionaries: PlantSupportDictionaryEntry[] = [
     category: 'Production',
   },
   {
+    id: 'dict-cost-center-old',
+    kind: 'Cost Center',
+    code: 'OLD-CC',
+    name: 'Old Cost Center',
+    description: 'Inactive cost center.',
+    active: false,
+    category: 'Production',
+  },
+  {
     id: 'dict-inspection-hardness',
     kind: 'Inspection Code',
     code: 'HARD',
     name: 'Hardness',
     description: 'Hardness inspection.',
     active: true,
+    category: 'Mechanical',
+  },
+  {
+    id: 'dict-inspection-old',
+    kind: 'Inspection Code',
+    code: 'OLD-HARD',
+    name: 'Old Hardness',
+    description: 'Inactive inspection.',
+    active: false,
     category: 'Mechanical',
   },
   {
@@ -96,6 +124,15 @@ const dictionaries: PlantSupportDictionaryEntry[] = [
     name: 'Rockwell C',
     description: 'HRC scale.',
     active: true,
+    category: 'Hardness',
+  },
+  {
+    id: 'dict-scale-old',
+    kind: 'Inspection Scale',
+    code: 'OLD',
+    name: 'Old Scale',
+    description: 'Inactive scale.',
+    active: false,
     category: 'Hardness',
   },
   {
@@ -291,6 +328,62 @@ describe('validateProcessRevisionForPromotion', () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Step 10 table key is inactive.');
   });
+
+  it('validates process step and inspection dictionary references', () => {
+    const activeRevision = revision();
+    const result = validateProcessRevisionForPromotion(
+      {
+        ...activeRevision,
+        steps: [
+          {
+            ...activeRevision.steps[0],
+            processCodeId: 'dict-process-old',
+            groupId: 'missing-group',
+            costCenterId: 'dict-cost-center-old',
+          },
+          {
+            ...activeRevision.steps[0],
+            id: 'step-austenitize',
+            sequence: 20,
+            processCodeId: 'missing-process-code',
+            groupId: 'dict-group-old',
+            costCenterId: 'missing-cost-center',
+          },
+        ],
+        inspections: [
+          {
+            ...activeRevision.inspections[0],
+            id: 'insp-invalid',
+            inspectionCodeId: 'missing-inspection-code',
+            inspectionScaleId: 'dict-scale-old',
+          },
+          {
+            ...activeRevision.inspections[0],
+            id: 'insp-inactive',
+            inspectionCodeId: 'dict-inspection-old',
+            inspectionScaleId: 'missing-scale',
+          },
+        ],
+      },
+      dictionaries,
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        'Step 10 process code is inactive.',
+        'Step 10 group is invalid.',
+        'Step 10 cost center is inactive.',
+        'Step 20 process code is invalid.',
+        'Step 20 group is inactive.',
+        'Step 20 cost center is invalid.',
+        'Inspection insp-invalid code is invalid.',
+        'Inspection insp-invalid scale is inactive.',
+        'Inspection insp-inactive code is inactive.',
+        'Inspection insp-inactive scale is invalid.',
+      ]),
+    );
+  });
 });
 
 describe('filterActiveDictionaryEntries', () => {
@@ -307,6 +400,15 @@ describe('getActiveProcessRevision', () => {
     const draftRevision = revision({ id: 'proc-rev-draft', revision: 17, status: 'Draft' });
 
     expect(getActiveProcessRevision(processMaster, [draftRevision, activeRevision])).toBe(activeRevision);
+  });
+});
+
+describe('getDraftProcessRevision', () => {
+  it('finds the draft revision', () => {
+    const activeRevision = revision();
+    const draftRevision = revision({ id: 'proc-rev-draft', revision: 17, status: 'Draft' });
+
+    expect(getDraftProcessRevision(processMaster, [activeRevision, draftRevision])).toBe(draftRevision);
   });
 });
 
@@ -404,6 +506,37 @@ describe('assignProcessRevisionToParts', () => {
 
     expect(result.errors).toEqual(['Specification is required before promotion.']);
     expect(result.warnings).toEqual([]);
+    expect(result.updatedParts).toBe(parts);
+  });
+
+  it('blocks assignment when the revision belongs to another process master', () => {
+    const parts = [part()];
+    const result = assignProcessRevisionToParts({
+      parts,
+      selectedPartIds: ['part-gfmco-tow'],
+      processMaster,
+      revision: revision({ processMasterId: 'other-process-master' }),
+      dictionaries,
+    });
+
+    expect(result.errors).toEqual(['Process revision does not belong to the selected process master.']);
+    expect(result.updatedParts).toBe(parts);
+  });
+
+  it('blocks unknown selected part IDs and preserves overwrite warnings', () => {
+    const parts = [part({ processMasterId: 'old-process', processRevisionId: 'old-revision' })];
+    const result = assignProcessRevisionToParts({
+      parts,
+      selectedPartIds: ['part-gfmco-tow', 'missing-part'],
+      processMaster,
+      revision: revision(),
+      dictionaries,
+    });
+
+    expect(result.errors).toEqual(['Selected customer part missing-part was not found.']);
+    expect(result.warnings).toEqual([
+      'Part 15-29900-010 already has process revision old-revision and will be overwritten.',
+    ]);
     expect(result.updatedParts).toBe(parts);
   });
 

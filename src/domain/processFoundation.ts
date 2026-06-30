@@ -4,6 +4,7 @@ import type {
   PlantSupportDictionaryEntry,
   PlantSupportDictionaryKind,
   ProcessMaster,
+  ProcessInspectionRequirement,
   ProcessRevision,
   ProcessStep,
 } from './types';
@@ -84,7 +85,7 @@ function validateStepReference(
   errors: string[],
   dictionaries: PlantSupportDictionaryEntry[],
   step: ProcessStep,
-  field: 'equipmentId' | 'tableKeyId',
+  field: 'processCodeId' | 'equipmentId' | 'tableKeyId' | 'groupId' | 'costCenterId',
   kind: PlantSupportDictionaryKind,
   label: string,
 ): void {
@@ -95,6 +96,24 @@ function validateStepReference(
     kind,
     `Step ${step.sequence} ${label} is invalid.`,
     `Step ${step.sequence} ${label} is inactive.`,
+  );
+}
+
+function validateInspectionReference(
+  errors: string[],
+  dictionaries: PlantSupportDictionaryEntry[],
+  inspection: ProcessInspectionRequirement,
+  field: 'inspectionCodeId' | 'inspectionScaleId',
+  kind: PlantSupportDictionaryKind,
+  label: string,
+): void {
+  validateReference(
+    errors,
+    dictionaries,
+    inspection[field],
+    kind,
+    `Inspection ${inspection.id} ${label} is invalid.`,
+    `Inspection ${inspection.id} ${label} is inactive.`,
   );
 }
 
@@ -146,8 +165,30 @@ export function validateProcessRevisionForPromotion(
   }
 
   for (const step of revision.steps) {
+    validateStepReference(errors, dictionaries, step, 'processCodeId', 'Process Code', 'process code');
     validateStepReference(errors, dictionaries, step, 'equipmentId', 'Equipment', 'equipment');
     validateStepReference(errors, dictionaries, step, 'tableKeyId', 'Table Key', 'table key');
+    validateStepReference(errors, dictionaries, step, 'groupId', 'Group', 'group');
+    validateStepReference(errors, dictionaries, step, 'costCenterId', 'Cost Center', 'cost center');
+  }
+
+  for (const inspection of revision.inspections) {
+    validateInspectionReference(
+      errors,
+      dictionaries,
+      inspection,
+      'inspectionCodeId',
+      'Inspection Code',
+      'code',
+    );
+    validateInspectionReference(
+      errors,
+      dictionaries,
+      inspection,
+      'inspectionScaleId',
+      'Inspection Scale',
+      'scale',
+    );
   }
 
   return {
@@ -201,9 +242,20 @@ export function assignProcessRevisionToParts(input: AssignProcessRevisionInput):
   const warnings: string[] = [];
   const selectedPartIds = new Set(input.selectedPartIds);
   const readiness = getProcessRevisionReadiness(input.revision, input.dictionaries);
+  const partIds = new Set(input.parts.map((part) => part.id));
 
   if (selectedPartIds.size === 0) {
     errors.push('Select at least one customer part.');
+  }
+
+  if (input.revision.processMasterId !== input.processMaster.id) {
+    errors.push('Process revision does not belong to the selected process master.');
+  }
+
+  for (const selectedPartId of selectedPartIds) {
+    if (!partIds.has(selectedPartId)) {
+      errors.push(`Selected customer part ${selectedPartId} was not found.`);
+    }
   }
 
   if (!readiness.assignable) {
