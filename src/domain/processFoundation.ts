@@ -11,9 +11,8 @@ import type {
 export type { ValidationResult } from './masterData';
 
 export interface ProcessRevisionReadiness {
-  canSaveDraft: boolean;
-  canPromote: boolean;
-  canAssign: boolean;
+  promotable: boolean;
+  assignable: boolean;
   blockers: string[];
   warnings: string[];
 }
@@ -35,10 +34,11 @@ export interface AssignProcessRevisionInput {
   selectedPartIds: string[];
   processMaster: ProcessMaster;
   revision: ProcessRevision;
+  dictionaries: PlantSupportDictionaryEntry[];
 }
 
 export interface AssignProcessRevisionResult {
-  parts: CustomerPart[];
+  updatedParts: CustomerPart[];
   errors: string[];
   warnings: string[];
 }
@@ -169,9 +169,8 @@ export function getProcessRevisionReadiness(
   }
 
   return {
-    canSaveDraft: true,
-    canPromote: promotionResult.valid,
-    canAssign: revision.status === 'Active' && promotionResult.valid,
+    promotable: promotionResult.valid,
+    assignable: revision.status === 'Active' && promotionResult.valid,
     blockers,
     warnings: promotionResult.warnings,
   };
@@ -201,21 +200,14 @@ export function assignProcessRevisionToParts(input: AssignProcessRevisionInput):
   const errors: string[] = [];
   const warnings: string[] = [];
   const selectedPartIds = new Set(input.selectedPartIds);
+  const readiness = getProcessRevisionReadiness(input.revision, input.dictionaries);
 
   if (selectedPartIds.size === 0) {
-    errors.push('At least one customer part must be selected.');
+    errors.push('Select at least one customer part.');
   }
 
-  if (input.revision.status === 'Draft') {
-    errors.push('Draft revisions cannot be assigned to parts.');
-  }
-
-  if (errors.length > 0) {
-    return {
-      parts: input.parts,
-      errors,
-      warnings,
-    };
+  if (!readiness.assignable) {
+    errors.push(...readiness.blockers);
   }
 
   for (const part of input.parts) {
@@ -230,7 +222,15 @@ export function assignProcessRevisionToParts(input: AssignProcessRevisionInput):
     }
   }
 
-  const parts = input.parts.map((part) => {
+  if (errors.length > 0) {
+    return {
+      updatedParts: input.parts,
+      errors,
+      warnings,
+    };
+  }
+
+  const updatedParts = input.parts.map((part) => {
     if (!selectedPartIds.has(part.id)) return part;
 
     return {
@@ -244,7 +244,7 @@ export function assignProcessRevisionToParts(input: AssignProcessRevisionInput):
   });
 
   return {
-    parts,
+    updatedParts,
     errors,
     warnings,
   };

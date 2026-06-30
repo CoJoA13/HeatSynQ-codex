@@ -227,9 +227,8 @@ function part(overrides: Partial<CustomerPart> = {}): CustomerPart {
 describe('getProcessRevisionReadiness', () => {
   it('reports a complete active revision as promotable and assignable', () => {
     expect(getProcessRevisionReadiness(revision(), dictionaries)).toEqual({
-      canSaveDraft: true,
-      canPromote: true,
-      canAssign: true,
+      promotable: true,
+      assignable: true,
       blockers: [],
       warnings: [],
     });
@@ -249,9 +248,8 @@ describe('getProcessRevisionReadiness', () => {
     );
 
     expect(result).toEqual({
-      canSaveDraft: true,
-      canPromote: false,
-      canAssign: false,
+      promotable: false,
+      assignable: false,
       blockers: [
         'Specification is required before promotion.',
         'At least one process step is required before promotion.',
@@ -347,11 +345,12 @@ describe('assignProcessRevisionToParts', () => {
       selectedPartIds: ['part-a', 'part-b'],
       processMaster,
       revision: revision(),
+      dictionaries,
     });
 
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
-    expect(result.parts).toEqual([
+    expect(result.updatedParts).toEqual([
       expect.objectContaining({
         id: 'part-a',
         processMasterId: '15-29900-003',
@@ -386,10 +385,26 @@ describe('assignProcessRevisionToParts', () => {
       selectedPartIds: ['part-gfmco-tow'],
       processMaster,
       revision: revision({ id: 'proc-rev-draft', revision: 17, status: 'Draft' }),
+      dictionaries,
     });
 
     expect(result.errors).toEqual(['Draft revisions cannot be assigned to parts.']);
-    expect(result.parts).toBe(parts);
+    expect(result.updatedParts).toBe(parts);
+  });
+
+  it('blocks invalid active assignment and returns the original parts', () => {
+    const parts = [part()];
+    const result = assignProcessRevisionToParts({
+      parts,
+      selectedPartIds: ['part-gfmco-tow'],
+      processMaster,
+      revision: revision({ specification: '' }),
+      dictionaries,
+    });
+
+    expect(result.errors).toEqual(['Specification is required before promotion.']);
+    expect(result.warnings).toEqual([]);
+    expect(result.updatedParts).toBe(parts);
   });
 
   it('requires at least one selected part', () => {
@@ -399,10 +414,11 @@ describe('assignProcessRevisionToParts', () => {
       selectedPartIds: [],
       processMaster,
       revision: revision(),
+      dictionaries,
     });
 
-    expect(result.errors).toEqual(['At least one customer part must be selected.']);
-    expect(result.parts).toBe(parts);
+    expect(result.errors).toEqual(['Select at least one customer part.']);
+    expect(result.updatedParts).toBe(parts);
   });
 
   it('warns before overwriting an existing process revision', () => {
@@ -411,13 +427,14 @@ describe('assignProcessRevisionToParts', () => {
       selectedPartIds: ['part-gfmco-tow'],
       processMaster,
       revision: revision(),
+      dictionaries,
     });
 
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([
       'Part 15-29900-010 already has process revision old-revision and will be overwritten.',
     ]);
-    expect(result.parts[0]).toMatchObject({
+    expect(result.updatedParts[0]).toMatchObject({
       processMasterId: '15-29900-003',
       processRevisionId: 'proc-rev-active',
     });
