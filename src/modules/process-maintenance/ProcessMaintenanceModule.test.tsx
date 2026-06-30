@@ -209,6 +209,59 @@ describe('ProcessMaintenanceModule', () => {
     expect(screen.queryByText('Rev 99 Draft')).not.toBeInTheDocument();
   });
 
+  it('syncs a cleared parent draft pointer over dirty local edits', async () => {
+    const user = userEvent.setup();
+    const onProcessMastersChange = vi.fn();
+    const onProcessRevisionsChange = vi.fn();
+    const onPlantSupportDictionaryEntriesChange = vi.fn();
+    const onCustomerPartsChange = vi.fn();
+    const initialRevisions = processRevisions.map((revision) =>
+      revision.id === 'proc-rev-austemper-draft' ? { ...revision, revision: 99 } : revision,
+    );
+    const rendered = render(
+      <ProcessMaintenanceModule
+        currentUser={users[0]}
+        processMasters={structuredClone(processMasters)}
+        processRevisions={initialRevisions}
+        plantSupportDictionaryEntries={structuredClone(plantSupportDictionaryEntries)}
+        customerParts={structuredClone(customerParts)}
+        onProcessMastersChange={onProcessMastersChange}
+        onProcessRevisionsChange={onProcessRevisionsChange}
+        onPlantSupportDictionaryEntriesChange={onPlantSupportDictionaryEntriesChange}
+        onCustomerPartsChange={onCustomerPartsChange}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /15-29900-003 Ductile Iron Austemper Route/i }));
+    await user.type(screen.getByLabelText('Specification'), 'Dirty local spec');
+    expect(screen.getByText('Rev 99 Draft')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Dirty local spec')).toBeInTheDocument();
+
+    const clearedDraftMasters = processMasters.map((processMaster) =>
+      processMaster.id === '15-29900-003' ? { ...processMaster, draftRevisionId: '' } : processMaster,
+    );
+    const promotedRevisions = initialRevisions.filter((revision) => revision.id !== 'proc-rev-austemper-draft');
+
+    rendered.rerender(
+      <ProcessMaintenanceModule
+        currentUser={users[0]}
+        processMasters={clearedDraftMasters}
+        processRevisions={promotedRevisions}
+        plantSupportDictionaryEntries={plantSupportDictionaryEntries}
+        customerParts={customerParts}
+        onProcessMastersChange={onProcessMastersChange}
+        onProcessRevisionsChange={onProcessRevisionsChange}
+        onPlantSupportDictionaryEntriesChange={onPlantSupportDictionaryEntriesChange}
+        onCustomerPartsChange={onCustomerPartsChange}
+      />,
+    );
+
+    expect(await screen.findByText('Rev 17 Draft')).toBeInTheDocument();
+    expect(screen.queryByText('Rev 99 Draft')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Dirty local spec')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('Eq: 180; Gr: IQ')).toBeInTheDocument();
+  });
+
   it('adds, duplicates, moves, and removes process steps in the draft', async () => {
     const user = userEvent.setup();
     renderProcessMaintenance();

@@ -129,7 +129,10 @@ export function ProcessMaintenanceModule({
       return;
     }
 
-    if (!hasUnsavedDraftEdits && nextSelectedProcessMaster.draftRevisionId !== syncedDraftRevisionId) {
+    const parentDraftPointerChanged = nextSelectedProcessMaster.draftRevisionId !== syncedDraftRevisionId;
+    const parentClearedDraftPointer = parentDraftPointerChanged && nextSelectedProcessMaster.draftRevisionId === '';
+
+    if (parentDraftPointerChanged && (!hasUnsavedDraftEdits || parentClearedDraftPointer)) {
       setDraftRevision(createEditableDraft(nextSelectedProcessMaster, processRevisions));
       setHasUnsavedDraftEdits(false);
       setSyncedDraftRevisionId(nextSelectedProcessMaster.draftRevisionId);
