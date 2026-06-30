@@ -13,8 +13,8 @@ interface StepsTabProps {
   plantSupportDictionaryEntries?: PlantSupportDictionaryEntry[];
 }
 
-function getDictionaryName(entries: PlantSupportDictionaryEntry[], id: string): string {
-  return entries.find((entry) => entry.id === id)?.name ?? id;
+function getEquipmentName(entries: PlantSupportDictionaryEntry[], id: string): string {
+  return entries.find((entry) => entry.id === id && entry.kind === 'Equipment')?.name ?? id;
 }
 
 export function StepsTab({
@@ -52,7 +52,7 @@ export function StepsTab({
               <tr key={step.id}>
                 <td>{step.sequence}</td>
                 <td>{step.name}</td>
-                <td>{getDictionaryName(plantSupportDictionaryEntries, step.equipmentId)}</td>
+                <td>{getEquipmentName(plantSupportDictionaryEntries, step.equipmentId)}</td>
                 <td>{step.temperatureF}</td>
                 <td>{step.minutes}</td>
                 <td>{step.tolerance || 'None'}</td>
