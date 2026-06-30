@@ -186,6 +186,7 @@ export const plantSupportDictionaryEntries: PlantSupportDictionaryEntry[] = [
   { id: 'dict-inspection-hardness', kind: 'Inspection Code', code: 'HARD', name: 'Hardness', description: 'Hardness inspection requirement.', active: true, category: 'Mechanical' },
   { id: 'dict-inspection-case-depth', kind: 'Inspection Code', code: 'CASE', name: 'Case Depth', description: 'Case depth inspection requirement.', active: true, category: 'Metallurgical' },
   { id: 'dict-scale-hrc', kind: 'Inspection Scale', code: 'HRC', name: 'Rockwell C', description: 'Rockwell C hardness scale.', active: true, category: 'Hardness' },
+  { id: 'dict-scale-bhn', kind: 'Inspection Scale', code: 'BHN', name: 'Brinell Hardness', description: 'Brinell hardness scale.', active: true, category: 'Hardness' },
   { id: 'dict-scale-inch', kind: 'Inspection Scale', code: 'IN', name: 'Inch', description: 'Inch-based dimensional scale.', active: true, category: 'Dimensional' },
   { id: 'dict-table-austemper-furnace', kind: 'Table Key', code: 'AUST-FURN', name: 'Austemper Furnace', description: 'Austemper furnace table key.', active: true, category: 'Austemper' },
   { id: 'dict-table-carburize-furnace', kind: 'Table Key', code: 'CARB-FURN', name: 'Carburize Furnace', description: 'Carburize furnace table key.', active: true, category: 'Carburize' },
@@ -212,7 +213,7 @@ export const processRevisions: ProcessRevision[] = [
       { id: 'step-austemper-inspection', sequence: 40, name: 'Final inspection', tableKeyId: 'dict-table-austemper-furnace', processCodeId: 'dict-process-austemper', equipmentId: 'dict-equipment-furnace-2', groupId: 'dict-group-heat-treat', costCenterId: 'dict-cost-center-inspection', temperatureF: 70, minutes: 20, tolerance: '', atmosphere: 'Ambient', quenchMedia: '', hardnessTarget: '302-363 BHN', caseDepthTarget: '', instructions: 'Inspect hardness and document certification notes.' },
     ],
     inspections: [
-      { id: 'insp-austemper-hardness', inspectionCodeId: 'dict-inspection-hardness', inspectionScaleId: 'dict-scale-hrc', timing: 'Final', frequency: 'Each lot', required: true, targetValue: '302-363 BHN', minimumValue: '302 BHN', maximumValue: '363 BHN', certVisible: true, notes: 'Record hardness summary on certification package.' },
+      { id: 'insp-austemper-hardness', inspectionCodeId: 'dict-inspection-hardness', inspectionScaleId: 'dict-scale-bhn', timing: 'Final', frequency: 'Each lot', required: true, targetValue: '302-363 BHN', minimumValue: '302 BHN', maximumValue: '363 BHN', certVisible: true, notes: 'Record hardness summary on certification package.' },
     ],
   },
   {

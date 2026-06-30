@@ -129,7 +129,7 @@ describe('validateCustomerPart', () => {
   });
 
   it('allows a draft part without a process master and returns a warning', () => {
-    const result = validateCustomerPart(part({ processMasterId: '' }), [], processMasters);
+    const result = validateCustomerPart(part({ processMasterId: '', processRevisionId: '' }), [], processMasters);
 
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
@@ -138,7 +138,12 @@ describe('validateCustomerPart', () => {
 
   it('blocks duplicate part ID for the same customer and invalid process references', () => {
     const result = validateCustomerPart(
-      part({ id: 'part-copy', partId: '15-29900-010', processMasterId: 'missing-process' }),
+      part({
+        id: 'part-copy',
+        partId: '15-29900-010',
+        processMasterId: 'missing-process',
+        processRevisionId: '',
+      }),
       [part({ id: 'part-original', partId: '15-29900-010', customerId: 'CUST-GFMCO' })],
       processMasters,
     );
@@ -178,6 +183,7 @@ describe('getPartOrderEntryStatus', () => {
         partHold: true,
         shippingHold: true,
         processMasterId: 'missing-process',
+        processRevisionId: '',
         material: '',
         certFormat: '',
         eachWeight: 0,
@@ -200,7 +206,7 @@ describe('getPartOrderEntryStatus', () => {
   });
 
   it('blocks Order Entry release when the process master is blank', () => {
-    const result = getPartOrderEntryStatus(part({ processMasterId: '' }), processMasters);
+    const result = getPartOrderEntryStatus(part({ processMasterId: '', processRevisionId: '' }), processMasters);
 
     expect(result.ready).toBe(false);
     expect(result.blockers).toContain('Missing process master.');
