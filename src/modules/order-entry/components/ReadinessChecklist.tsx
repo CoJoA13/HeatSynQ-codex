@@ -18,9 +18,10 @@ const checklistItems: ChecklistItem[] = [
 
 interface ReadinessChecklistProps {
   readiness: ReadinessResult;
+  onSelectTab: (tab: OrderEntryTab) => void;
 }
 
-export function ReadinessChecklist({ readiness }: ReadinessChecklistProps) {
+export function ReadinessChecklist({ readiness, onSelectTab }: ReadinessChecklistProps) {
   const missingKeys = new Set(readiness.missing.map((item) => item.key));
 
   return (
@@ -28,7 +29,7 @@ export function ReadinessChecklist({ readiness }: ReadinessChecklistProps) {
       <div className="readiness-heading">
         <div>
           <p className="panel-kicker">Release gate</p>
-          <h2 id="readiness-title">Readiness Checklist</h2>
+          <h2 id="readiness-title">Ready to Release</h2>
         </div>
         <span className="readiness-count">{readiness.ready ? 'Complete' : `${readiness.missing.length} open`}</span>
       </div>
@@ -39,9 +40,11 @@ export function ReadinessChecklist({ readiness }: ReadinessChecklistProps) {
 
           return (
             <li key={item.key} className={missing ? 'readiness-item readiness-item-open' : 'readiness-item'}>
-              {missing ? <AlertCircle size={17} aria-hidden="true" /> : <CheckCircle2 size={17} aria-hidden="true" />}
-              <span className="readiness-item-label">{item.label}</span>
-              <span className="readiness-item-tab">{item.tab}</span>
+              <button type="button" className="readiness-item-button" onClick={() => onSelectTab(item.tab)}>
+                {missing ? <AlertCircle size={17} aria-hidden="true" /> : <CheckCircle2 size={17} aria-hidden="true" />}
+                <span className="readiness-item-label">{item.label}</span>
+                <span className="readiness-item-tab">{item.tab}</span>
+              </button>
             </li>
           );
         })}

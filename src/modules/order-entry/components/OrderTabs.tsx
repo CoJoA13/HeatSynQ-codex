@@ -8,9 +8,14 @@ function tabId(tab: OrderEntryTab): string {
 
 export interface OrderTabsProps {
   activeTab: OrderEntryTab;
+  onTabChange: (tab: OrderEntryTab) => void;
 }
 
-export function OrderTabs({ activeTab }: OrderTabsProps) {
+function panelId(tab: OrderEntryTab): string {
+  return `order-panel-${tab.toLowerCase().replace(/\s+/g, '-')}`;
+}
+
+export function OrderTabs({ activeTab, onTabChange }: OrderTabsProps) {
   return (
     <nav className="order-tabs" role="tablist" aria-label="Order Entry sections">
       {orderEntryTabs.map((tab) => {
@@ -24,8 +29,8 @@ export function OrderTabs({ activeTab }: OrderTabsProps) {
             id={tabId(tab)}
             className="order-tab"
             aria-selected={selected}
-            aria-controls={selected ? 'order-panel-order-top' : undefined}
-            tabIndex={selected ? 0 : -1}
+            aria-controls={panelId(tab)}
+            onClick={() => onTabChange(tab)}
           >
             {tab}
           </button>

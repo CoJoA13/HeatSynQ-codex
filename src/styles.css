@@ -103,7 +103,8 @@ textarea {
   outline-offset: 2px;
 }
 
-.toolbar-button:disabled {
+.toolbar-button:disabled,
+.toolbar-icon-button:disabled {
   color: #6b7280;
   background: #e5e7eb;
   cursor: not-allowed;
@@ -312,16 +313,31 @@ textarea {
 }
 
 .readiness-item {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 7px 8px;
+  overflow: hidden;
   border: 1px solid #d7dde5;
   border-radius: 4px;
   color: #14532d;
   background: #fbfdfc;
+}
+
+.readiness-item-button {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.readiness-item-button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
 }
 
 .readiness-item-open {
