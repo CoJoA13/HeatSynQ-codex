@@ -6,10 +6,12 @@ import {
   getDraftProcessRevision,
   getProcessDisplaySummary,
   getProcessRevisionReadiness,
+  promoteProcessDraftRevision,
 } from '../../domain/processFoundation';
 import type {
   CustomerPart,
   PlantSupportDictionaryEntry,
+  PlantSupportDictionaryKind,
   ProcessInspectionRequirement,
   ProcessMaster,
   ProcessRevision,
@@ -27,6 +29,37 @@ interface ProcessMaintenanceModuleProps {
   onProcessRevisionsChange: (processRevisions: ProcessRevision[]) => void;
   onPlantSupportDictionaryEntriesChange: (entries: PlantSupportDictionaryEntry[]) => void;
   onCustomerPartsChange: (parts: CustomerPart[]) => void;
+}
+
+interface DictionaryDraft {
+  kind: PlantSupportDictionaryKind;
+  code: string;
+  name: string;
+  description: string;
+  category: string;
+  active: boolean;
+}
+
+const dictionaryKinds: PlantSupportDictionaryKind[] = [
+  'Process Code',
+  'Equipment',
+  'Group',
+  'Cost Center',
+  'Inspection Code',
+  'Inspection Scale',
+  'Table Key',
+  'Standard Step Template',
+];
+
+function createEmptyDictionaryDraft(): DictionaryDraft {
+  return {
+    kind: 'Process Code',
+    code: '',
+    name: '',
+    description: '',
+    category: '',
+    active: true,
+  };
 }
 
 function createEditableDraft(processMaster: ProcessMaster, revisions: ProcessRevision[]): ProcessRevision {
@@ -69,6 +102,7 @@ export function ProcessMaintenanceModule({
   customerParts,
   onProcessMastersChange,
   onProcessRevisionsChange,
+  onPlantSupportDictionaryEntriesChange,
 }: ProcessMaintenanceModuleProps) {
   const firstProcessMaster = processMasters[0];
   const [selectedProcessMasterId, setSelectedProcessMasterId] = useState(firstProcessMaster?.id ?? '');
@@ -79,6 +113,11 @@ export function ProcessMaintenanceModule({
   const [saveSummary, setSaveSummary] = useState('');
   const [hasUnsavedDraftEdits, setHasUnsavedDraftEdits] = useState(false);
   const [syncedDraftRevisionId, setSyncedDraftRevisionId] = useState(firstProcessMaster?.draftRevisionId ?? '');
+  const [dictionaryEntries, setDictionaryEntries] = useState<PlantSupportDictionaryEntry[]>(() =>
+    structuredClone(plantSupportDictionaryEntries),
+  );
+  const [showDictionaryDraft, setShowDictionaryDraft] = useState(false);
+  const [dictionaryDraft, setDictionaryDraft] = useState<DictionaryDraft>(() => createEmptyDictionaryDraft());
 
   const selectedProcessMaster =
     processMasters.find((processMaster) => processMaster.id === selectedProcessMasterId) ?? firstProcessMaster;
@@ -86,19 +125,21 @@ export function ProcessMaintenanceModule({
     ? getActiveProcessRevision(selectedProcessMaster, processRevisions)
     : undefined;
   const activeSummary = selectedProcessMaster
-    ? getProcessDisplaySummary(selectedProcessMaster, activeRevision, plantSupportDictionaryEntries)
+    ? getProcessDisplaySummary(selectedProcessMaster, activeRevision, dictionaryEntries)
     : undefined;
   const draftSummary =
     selectedProcessMaster && draftRevision
-      ? getProcessDisplaySummary(selectedProcessMaster, draftRevision, plantSupportDictionaryEntries)
+      ? getProcessDisplaySummary(selectedProcessMaster, draftRevision, dictionaryEntries)
       : undefined;
-  const draftReadiness = draftRevision
-    ? getProcessRevisionReadiness(draftRevision, plantSupportDictionaryEntries)
-    : undefined;
+  const draftReadiness = draftRevision ? getProcessRevisionReadiness(draftRevision, dictionaryEntries) : undefined;
   const readinessMessages = draftReadiness?.blockers ?? [];
   const assignedPartCount = selectedProcessMaster
     ? customerParts.filter((part) => part.processMasterId === selectedProcessMaster.id).length
     : 0;
+
+  useEffect(() => {
+    setDictionaryEntries(structuredClone(plantSupportDictionaryEntries));
+  }, [plantSupportDictionaryEntries]);
 
   useEffect(() => {
     if (processMasters.length === 0) {
@@ -148,32 +189,32 @@ export function ProcessMaintenanceModule({
   ]);
 
   const activeProcessCodes = useMemo(
-    () => filterActiveDictionaryEntries(plantSupportDictionaryEntries, 'Process Code'),
-    [plantSupportDictionaryEntries],
+    () => filterActiveDictionaryEntries(dictionaryEntries, 'Process Code'),
+    [dictionaryEntries],
   );
   const activeEquipment = useMemo(
-    () => filterActiveDictionaryEntries(plantSupportDictionaryEntries, 'Equipment'),
-    [plantSupportDictionaryEntries],
+    () => filterActiveDictionaryEntries(dictionaryEntries, 'Equipment'),
+    [dictionaryEntries],
   );
   const activeGroups = useMemo(
-    () => filterActiveDictionaryEntries(plantSupportDictionaryEntries, 'Group'),
-    [plantSupportDictionaryEntries],
+    () => filterActiveDictionaryEntries(dictionaryEntries, 'Group'),
+    [dictionaryEntries],
   );
   const activeCostCenters = useMemo(
-    () => filterActiveDictionaryEntries(plantSupportDictionaryEntries, 'Cost Center'),
-    [plantSupportDictionaryEntries],
+    () => filterActiveDictionaryEntries(dictionaryEntries, 'Cost Center'),
+    [dictionaryEntries],
   );
   const activeInspectionCodes = useMemo(
-    () => filterActiveDictionaryEntries(plantSupportDictionaryEntries, 'Inspection Code'),
-    [plantSupportDictionaryEntries],
+    () => filterActiveDictionaryEntries(dictionaryEntries, 'Inspection Code'),
+    [dictionaryEntries],
   );
   const activeInspectionScales = useMemo(
-    () => filterActiveDictionaryEntries(plantSupportDictionaryEntries, 'Inspection Scale'),
-    [plantSupportDictionaryEntries],
+    () => filterActiveDictionaryEntries(dictionaryEntries, 'Inspection Scale'),
+    [dictionaryEntries],
   );
   const activeTableKeys = useMemo(
-    () => filterActiveDictionaryEntries(plantSupportDictionaryEntries, 'Table Key'),
-    [plantSupportDictionaryEntries],
+    () => filterActiveDictionaryEntries(dictionaryEntries, 'Table Key'),
+    [dictionaryEntries],
   );
 
   const filteredProcessMasters = useMemo(() => {
@@ -187,12 +228,12 @@ export function ProcessMaintenanceModule({
       const processActiveSummary = getProcessDisplaySummary(
         processMaster,
         processActiveRevision,
-        plantSupportDictionaryEntries,
+        dictionaryEntries,
       );
       const processDraftSummary = getProcessDisplaySummary(
         processMaster,
         processDraftRevision,
-        plantSupportDictionaryEntries,
+        dictionaryEntries,
       );
       const searchableText = [
         processMaster.id,
@@ -207,7 +248,7 @@ export function ProcessMaintenanceModule({
 
       return searchableText.includes(normalizedQuery);
     });
-  }, [plantSupportDictionaryEntries, processMasters, processRevisions, searchQuery]);
+  }, [dictionaryEntries, processMasters, processRevisions, searchQuery]);
 
   function renderDictionaryOptions(entries: PlantSupportDictionaryEntry[]) {
     return entries.map((entry) => (
@@ -258,6 +299,76 @@ export function ProcessMaintenanceModule({
     setDraftRevision(savedDraft);
     setHasUnsavedDraftEdits(false);
     setSaveSummary('Draft saved.');
+  }
+
+  function createNewDraftRevision() {
+    if (!selectedProcessMaster) return;
+
+    const nextDraftRevision = createEditableDraft(selectedProcessMaster, processRevisions);
+
+    setDraftRevision(nextDraftRevision);
+    setHasUnsavedDraftEdits(true);
+    setSyncedDraftRevisionId(selectedProcessMaster.draftRevisionId);
+    setSaveSummary('');
+  }
+
+  function saveDictionaryEntry() {
+    const nextEntry: PlantSupportDictionaryEntry = {
+      id: `dict-${dictionaryDraft.kind.toLocaleLowerCase().replace(/\s+/g, '-')}-${crypto.randomUUID()}`,
+      kind: dictionaryDraft.kind,
+      code: dictionaryDraft.code.trim(),
+      name: dictionaryDraft.name.trim(),
+      description: dictionaryDraft.description.trim(),
+      category: dictionaryDraft.category.trim(),
+      active: dictionaryDraft.active,
+    };
+    const nextEntries = [...dictionaryEntries, nextEntry];
+
+    setDictionaryEntries(nextEntries);
+    onPlantSupportDictionaryEntriesChange(nextEntries);
+    setDictionaryDraft(createEmptyDictionaryDraft());
+    setShowDictionaryDraft(false);
+  }
+
+  function inactivateDictionaryEntry(entryId: string) {
+    const nextEntries = dictionaryEntries.map((entry) =>
+      entry.id === entryId ? { ...entry, active: false } : entry,
+    );
+
+    setDictionaryEntries(nextEntries);
+    onPlantSupportDictionaryEntriesChange(nextEntries);
+  }
+
+  function promoteDraft() {
+    if (!selectedProcessMaster || !draftRevision) return;
+
+    const existingRevisionIndex = processRevisions.findIndex((revision) => revision.id === draftRevision.id);
+    const revisionsWithDraft =
+      existingRevisionIndex === -1
+        ? [...processRevisions, draftRevision]
+        : processRevisions.map((revision, index) => (index === existingRevisionIndex ? draftRevision : revision));
+    const promotion = promoteProcessDraftRevision(
+      selectedProcessMaster,
+      revisionsWithDraft,
+      draftRevision.id,
+      dictionaryEntries,
+    );
+
+    if (promotion.errors.length > 0) {
+      setSaveSummary(promotion.errors.join(' '));
+      return;
+    }
+
+    onProcessMastersChange(
+      processMasters.map((processMaster) =>
+        processMaster.id === selectedProcessMaster.id ? promotion.processMaster : processMaster,
+      ),
+    );
+    onProcessRevisionsChange(promotion.revisions);
+    setDraftRevision({ ...draftRevision, status: 'Active' });
+    setHasUnsavedDraftEdits(false);
+    setSyncedDraftRevisionId(selectedProcessMaster.draftRevisionId);
+    setSaveSummary('Draft promoted to active revision.');
   }
 
   function addStep() {
@@ -382,6 +493,15 @@ export function ProcessMaintenanceModule({
             <h1 id="process-maintenance-title">Process Maintenance</h1>
           </div>
           <div className="toolbar-group">
+            <button className="toolbar-button" type="button" onClick={() => setShowDictionaryDraft(true)}>
+              Add Dictionary Entry
+            </button>
+            <button className="toolbar-button" type="button" onClick={createNewDraftRevision}>
+              New Draft Revision
+            </button>
+            <button className="toolbar-button" type="button" onClick={promoteDraft}>
+              Promote Draft
+            </button>
             <button className="toolbar-button toolbar-button-primary" type="button" onClick={saveDraft}>
               Save Draft
             </button>
@@ -467,6 +587,111 @@ export function ProcessMaintenanceModule({
                 )}
               </section>
             )}
+
+            <section className="master-section" aria-labelledby="process-dictionary-heading">
+              <div className="section-toolbar">
+                <h2 id="process-dictionary-heading">Plant Support Dictionary</h2>
+              </div>
+              {showDictionaryDraft && (
+                <div className="master-form-grid">
+                  <label>
+                    Dictionary kind
+                    <select
+                      value={dictionaryDraft.kind}
+                      onChange={(event) =>
+                        setDictionaryDraft({
+                          ...dictionaryDraft,
+                          kind: event.target.value as PlantSupportDictionaryKind,
+                        })
+                      }
+                    >
+                      {dictionaryKinds.map((kind) => (
+                        <option key={kind} value={kind}>
+                          {kind}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Dictionary code
+                    <input
+                      value={dictionaryDraft.code}
+                      onChange={(event) => setDictionaryDraft({ ...dictionaryDraft, code: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Dictionary name
+                    <input
+                      value={dictionaryDraft.name}
+                      onChange={(event) => setDictionaryDraft({ ...dictionaryDraft, name: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Description
+                    <input
+                      value={dictionaryDraft.description}
+                      onChange={(event) =>
+                        setDictionaryDraft({ ...dictionaryDraft, description: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Category
+                    <input
+                      value={dictionaryDraft.category}
+                      onChange={(event) => setDictionaryDraft({ ...dictionaryDraft, category: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Dictionary active
+                    <input
+                      type="checkbox"
+                      checked={dictionaryDraft.active}
+                      onChange={(event) => setDictionaryDraft({ ...dictionaryDraft, active: event.target.checked })}
+                    />
+                  </label>
+                  <button className="toolbar-button toolbar-button-primary" type="button" onClick={saveDictionaryEntry}>
+                    Save Dictionary Entry
+                  </button>
+                </div>
+              )}
+              <div className="table-scroll">
+                <table className="data-table" aria-label="Plant support dictionary entries">
+                  <thead>
+                    <tr>
+                      <th scope="col">Kind</th>
+                      <th scope="col">Code</th>
+                      <th scope="col">Name</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dictionaryEntries.map((entry) => (
+                      <tr key={entry.id}>
+                        <td>{entry.kind}</td>
+                        <td>{entry.code}</td>
+                        <td>{entry.name}</td>
+                        <td>{entry.active ? 'Active' : 'Inactive'}</td>
+                        <td>
+                          {entry.active ? (
+                            <button
+                              className="row-action-button"
+                              type="button"
+                              onClick={() => inactivateDictionaryEntry(entry.id)}
+                            >
+                              Inactivate {entry.name}
+                            </button>
+                          ) : (
+                            <span>-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
             {draftRevision && (
               <section className="master-section" aria-labelledby="process-draft-fields-heading">

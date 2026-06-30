@@ -289,4 +289,38 @@ describe('ProcessMaintenanceModule', () => {
 
     expect(screen.getByLabelText('Draft inspection 1 target value')).toHaveDisplayValue('302-363 BHN');
   });
+
+  it('adds and inactivates lightweight dictionary entries', async () => {
+    const user = userEvent.setup();
+    const { onPlantSupportDictionaryEntriesChange } = renderProcessMaintenance();
+
+    await user.click(screen.getByRole('button', { name: /15-29900-003 Ductile Iron Austemper Route/i }));
+    await user.click(screen.getByRole('button', { name: 'Add Dictionary Entry' }));
+    await user.selectOptions(screen.getByLabelText('Dictionary kind'), 'Equipment');
+    await user.type(screen.getByLabelText('Dictionary code'), 'FURN-9');
+    await user.type(screen.getByLabelText('Dictionary name'), 'Furnace 9');
+    await user.click(screen.getByRole('button', { name: 'Save Dictionary Entry' }));
+
+    expect(onPlantSupportDictionaryEntriesChange).toHaveBeenCalled();
+    expect(screen.getByText('Furnace 9')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Inactivate Furnace 9' }));
+
+    expect(screen.getByText('Inactive')).toBeInTheDocument();
+  });
+
+  it('promotes a ready draft revision to active', async () => {
+    const user = userEvent.setup();
+    const { onProcessMastersChange, onProcessRevisionsChange } = renderProcessMaintenance();
+
+    await user.click(screen.getByRole('button', { name: /12-496783-HT 8620 Steel Carburize Route/i }));
+    await user.click(screen.getByRole('button', { name: 'New Draft Revision' }));
+    await user.click(screen.getByRole('button', { name: 'Add Step' }));
+    await user.click(screen.getByRole('button', { name: 'Add Inspection' }));
+    await user.click(screen.getByRole('button', { name: 'Promote Draft' }));
+
+    expect(onProcessMastersChange).toHaveBeenCalled();
+    expect(onProcessRevisionsChange).toHaveBeenCalled();
+    expect(screen.getByText('Draft promoted to active revision.')).toBeVisible();
+  });
 });

@@ -6,6 +6,7 @@ import {
   getDraftProcessRevision,
   getProcessDisplaySummary,
   getProcessRevisionReadiness,
+  promoteProcessDraftRevision,
   validateProcessRevisionForPromotion,
 } from './processFoundation';
 import type {
@@ -295,6 +296,22 @@ describe('getProcessRevisionReadiness', () => {
       ],
       warnings: [],
     });
+  });
+});
+
+describe('promoteProcessDraftRevision', () => {
+  it('turns a ready draft into the active revision and updates the process master', () => {
+    const draft = revision({ id: 'proc-rev-draft', status: 'Draft', revision: 17 });
+    const { processMaster: updatedMaster, revisions } = promoteProcessDraftRevision(
+      processMaster,
+      [revision(), draft],
+      draft.id,
+      dictionaries,
+    );
+
+    expect(updatedMaster.activeRevisionId).toBe('proc-rev-draft');
+    expect(updatedMaster.draftRevisionId).toBe('');
+    expect(revisions.find((entry) => entry.id === 'proc-rev-draft')?.status).toBe('Active');
   });
 });
 

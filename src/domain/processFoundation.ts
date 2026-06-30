@@ -44,6 +44,12 @@ export interface AssignProcessRevisionResult {
   warnings: string[];
 }
 
+export interface PromoteProcessDraftRevisionResult {
+  processMaster: ProcessMaster;
+  revisions: ProcessRevision[];
+  errors: string[];
+}
+
 function isBlank(value: string): boolean {
   return value.trim().length === 0;
 }
@@ -195,6 +201,39 @@ export function validateProcessRevisionForPromotion(
     valid: errors.length === 0,
     errors,
     warnings,
+  };
+}
+
+export function promoteProcessDraftRevision(
+  processMaster: ProcessMaster,
+  revisions: ProcessRevision[],
+  draftRevisionId: string,
+  dictionaries: PlantSupportDictionaryEntry[],
+): PromoteProcessDraftRevisionResult {
+  const draftRevision = revisions.find((revision) => revision.id === draftRevisionId);
+
+  if (!draftRevision) {
+    return { processMaster, revisions, errors: ['Draft revision was not found.'] };
+  }
+
+  const validation = validateProcessRevisionForPromotion(draftRevision, dictionaries);
+
+  if (!validation.valid) {
+    return { processMaster, revisions, errors: validation.errors };
+  }
+
+  const promotedDraft: ProcessRevision = { ...draftRevision, status: 'Active' };
+  const demotedActive = revisions.find((revision) => revision.id === processMaster.activeRevisionId);
+  const nextRevisions = revisions.map((revision) => {
+    if (revision.id === promotedDraft.id) return promotedDraft;
+    if (demotedActive && revision.id === demotedActive.id) return { ...revision, status: 'Draft' as const };
+    return revision;
+  });
+
+  return {
+    processMaster: { ...processMaster, activeRevisionId: promotedDraft.id, draftRevisionId: '' },
+    revisions: nextRevisions,
+    errors: [],
   };
 }
 
