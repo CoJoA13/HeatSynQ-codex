@@ -110,6 +110,7 @@ textarea {
 .form-grid select:focus-visible,
 .master-search-field input:focus-visible,
 .master-form-grid input:focus-visible,
+.master-form-grid select:focus-visible,
 .simple-list-row:focus-visible,
 .process-panel select:focus-visible,
 .parts-table input:focus-visible,
@@ -235,7 +236,8 @@ textarea {
 }
 
 .master-search-field input,
-.master-form-grid input {
+.master-form-grid input,
+.master-form-grid select {
   width: 100%;
   height: 30px;
   min-width: 0;
@@ -354,6 +356,40 @@ textarea {
 .checkbox-strip input {
   width: 15px;
   height: 15px;
+}
+
+.show-inactive-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.show-inactive-toggle input {
+  width: 15px;
+  height: 15px;
+}
+
+.part-readiness-panel {
+  border-left: 4px solid #64748b;
+}
+
+.part-readiness-panel .readiness-ready,
+.part-readiness-panel .readiness-blocked {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.part-readiness-panel .readiness-ready {
+  color: #14532d;
+}
+
+.part-readiness-panel .readiness-blocked {
+  color: #991b1b;
 }
 
 .simple-note-list {
