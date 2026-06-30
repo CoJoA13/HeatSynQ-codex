@@ -187,11 +187,11 @@ export function CustomerMaintenanceModule({ currentUser }: CustomerMaintenanceMo
 
   return (
     <ModuleGate user={currentUser} permission="Customer Maintenance" moduleName="Customer Maintenance">
-      <main className="master-data-module customer-maintenance-module">
+      <section className="master-data-module customer-maintenance-module" aria-labelledby="customer-maintenance-title">
         <header className="master-data-header">
           <div>
             <p className="module-label">Master Data</p>
-            <h1>Customer Maintenance</h1>
+            <h1 id="customer-maintenance-title">Customer Maintenance</h1>
           </div>
           <div className="toolbar-group">
             <button className="toolbar-button" type="button" onClick={createCustomer}>
@@ -454,7 +454,7 @@ export function CustomerMaintenanceModule({ currentUser }: CustomerMaintenanceMo
             </section>
           </section>
         </div>
-      </main>
+      </section>
     </ModuleGate>
   );
 }

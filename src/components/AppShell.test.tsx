@@ -26,6 +26,15 @@ describe('AppShell', () => {
     expect(screen.getByRole('heading', { name: 'Part Maintenance' })).toBeInTheDocument();
   });
 
+  it('keeps a single app-level main landmark when switching modules', async () => {
+    const user = userEvent.setup();
+    render(<AppShell currentUser={users[0]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Customer Maintenance' }));
+
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+  });
+
   it('defaults to the first enabled module when Order Entry is not enabled', () => {
     const partOnlyUser: User = {
       id: 'part-only',
