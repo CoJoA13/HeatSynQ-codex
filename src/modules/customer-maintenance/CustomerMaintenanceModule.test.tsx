@@ -22,6 +22,7 @@ describe('CustomerMaintenanceModule', () => {
     expect(screen.getByLabelText('Customer name')).toHaveDisplayValue('AMZ Manufacturing Corporation');
     expect(screen.getByRole('heading', { name: 'Linked Parts' })).toBeInTheDocument();
     expect(screen.getByText('12496783-HT')).toBeInTheDocument();
+    expect(screen.getByText('Shipping hold')).toBeInTheDocument();
   });
 
   it('shows validation summary when saving a customer without a name', async () => {

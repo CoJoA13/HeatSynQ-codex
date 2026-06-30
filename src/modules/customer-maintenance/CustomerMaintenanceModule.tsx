@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ModuleGate } from '../../components/ModuleGate';
 import { customerParts, customers as seededCustomers } from '../../data/seed';
 import { filterPartsForCustomer, validateCustomer } from '../../domain/masterData';
-import type { Customer, CustomerOrderRules, User } from '../../domain/types';
+import type { Customer, CustomerOrderRules, CustomerPart, User } from '../../domain/types';
 
 interface CustomerMaintenanceModuleProps {
   currentUser: User;
@@ -26,6 +26,13 @@ type OrderRuleBooleanField = Pick<
 >;
 
 const cloneCustomers = (): Customer[] => structuredClone(seededCustomers);
+
+function getLinkedPartStatus(part: CustomerPart): string {
+  if (part.inactive) return 'Inactive';
+  if (part.partHold) return 'Part hold';
+  if (part.shippingHold) return 'Shipping hold';
+  return 'Active';
+}
 
 function createBlankCustomer(): Customer {
   return {
@@ -421,7 +428,7 @@ export function CustomerMaintenanceModule({ currentUser }: CustomerMaintenanceMo
                           <td>{part.partId}</td>
                           <td>{part.partName}</td>
                           <td>{part.processMasterId || 'Unassigned'}</td>
-                          <td>{part.inactive ? 'Inactive' : 'Active'}</td>
+                          <td>{getLinkedPartStatus(part)}</td>
                         </tr>
                       ))}
                     </tbody>
