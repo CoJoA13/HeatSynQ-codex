@@ -1,8 +1,10 @@
+import { users } from './data/seed';
+import { OrderEntryModule } from './modules/order-entry/OrderEntryModule';
+
 export default function App() {
   return (
     <main className="app-shell">
-      <h1>HeatSynQ</h1>
-      <p>Order Entry module setup in progress.</p>
+      <OrderEntryModule currentUser={users[0]} />
     </main>
   );
 }
