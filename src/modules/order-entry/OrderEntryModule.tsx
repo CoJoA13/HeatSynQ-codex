@@ -3,10 +3,15 @@ import { customers, sampleOrder } from '../../data/seed';
 import { validateOrderReadiness, type OrderEntryTab } from '../../domain/readiness';
 import type { Order, User } from '../../domain/types';
 import { ModuleGate } from './components/ModuleGate';
+import { ActivityPanels } from './components/ActivityPanels';
 import { OrderHeaderStatus } from './components/OrderHeaderStatus';
 import { OrderTabs } from './components/OrderTabs';
 import { OrderToolbar } from './components/OrderToolbar';
 import { ReadinessChecklist } from './components/ReadinessChecklist';
+import { DetailTab } from './tabs/DetailTab';
+import { OrderTopTab } from './tabs/OrderTopTab';
+import { ProcessTab } from './tabs/ProcessTab';
+import { StepsTab } from './tabs/StepsTab';
 
 interface OrderEntryModuleProps {
   currentUser: User;
@@ -83,6 +88,15 @@ export function OrderEntryModule({ currentUser }: OrderEntryModuleProps) {
     }));
   }
 
+  function renderActiveTab() {
+    if (activeTab === 'Order Top') return <OrderTopTab order={order} onOrderChange={setOrder} />;
+    if (activeTab === 'Detail') return <DetailTab order={order} />;
+    if (activeTab === 'Process') return <ProcessTab order={order} onOrderChange={setOrder} />;
+    if (activeTab === 'Steps') return <StepsTab order={order} />;
+
+    return <div className="empty-state">Parts entry will be added next task.</div>;
+  }
+
   return (
     <ModuleGate user={currentUser}>
       <section className="order-entry-module" aria-labelledby="order-entry-title">
@@ -125,32 +139,13 @@ export function OrderEntryModule({ currentUser }: OrderEntryModuleProps) {
             id={tabPanelId(activeTab)}
             aria-labelledby={`order-tab-${activeTab.toLowerCase().replace(/\s+/g, '-')}`}
           >
-            <div className="panel-heading">
-              <p className="panel-kicker">Active tab</p>
-              <h2>{activeTab}</h2>
-            </div>
-
-            <dl className="order-summary-grid">
-              <div>
-                <dt>PO Number</dt>
-                <dd>{order.poNumber || 'Pending'}</dd>
-              </div>
-              <div>
-                <dt>Packing Number</dt>
-                <dd>{order.packingNumber || 'Pending'}</dd>
-              </div>
-              <div>
-                <dt>Process Master</dt>
-                <dd>{order.processMasterId || 'Pending'}</dd>
-              </div>
-              <div>
-                <dt>Request Date</dt>
-                <dd>{order.requestDate || 'Pending'}</dd>
-              </div>
-            </dl>
+            {renderActiveTab()}
           </section>
 
-          <ReadinessChecklist readiness={readiness} onSelectTab={setActiveTab} />
+          <div className="right-column">
+            <ReadinessChecklist readiness={readiness} onSelectTab={setActiveTab} />
+            <ActivityPanels order={order} />
+          </div>
         </div>
       </section>
     </ModuleGate>
